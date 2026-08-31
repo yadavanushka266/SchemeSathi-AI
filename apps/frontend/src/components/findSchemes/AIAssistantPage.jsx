@@ -401,25 +401,24 @@ export default function AIAssistantPage() {
           onClick={openVoiceAssistant}
           title="Open Voice Assistant"
           className="
-             rounded-lg
-      border
-      border-[#d7aa2d]
-      bg-white
-      px-5
-      py-2
-      text-[12px]
-      font-semibold
-      text-[#0d2b55]
-      shadow-sm
-      transition-all
-      duration-200
-      hover:bg-[#0d2b55]
-      hover:text-white
-      hover:shadow-md
-      active:scale-95
+             rounded-border-lg
+            border-[#d7aa2d]
+            bg-white
+            px-5
+            py-2
+            text-[12px]
+            font-semibold
+            text-[#0d2b55]
+            shadow-sm
+            transition-all
+            duration-200
+            hover:bg-[#0d2b55]
+            hover:text-white
+            hover:shadow-md
+            active:scale-95
           "
         >
-          mic
+          🎤
         </button>
 
                 {/* SEND BUTTON */}

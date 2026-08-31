@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import logo from "../logo.jpg";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -92,45 +93,7 @@ export default function Header() {
 
           {/* ================= LOGO ================= */}
 
-          <a
-            href="/"
-            className="flex min-w-0 items-center gap-2.5"
-          >
-
-            <div
-              className="
-                flex
-                h-9
-                w-9
-                shrink-0
-                items-center
-                justify-center
-                rounded-[10px]
-                bg-[#0d2b55]
-                shadow-sm
-              "
-            >
-
-              <span className="text-lg font-extrabold text-[#f4c63d]">
-                S
-              </span>
-
-            </div>
-
-            <span
-              className="
-                truncate
-                text-[16px]
-                font-bold
-                tracking-[-0.02em]
-                text-[#172b49]
-                sm:text-[17px]
-              "
-            >
-              SchemeSaathi AI
-            </span>
-
-          </a>
+          <img src={logo} alt="Logo" className="h-10 w-auto" />
 
         </div>
 
