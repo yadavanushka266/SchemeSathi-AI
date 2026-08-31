@@ -9,7 +9,7 @@ const steps = [
 
 export default function ProgressSteps({ currentStep = 1 }) {
 
-  const openAssistant = () => {
+  const openAIAssistant = () => {
     window.location.assign("/ai-assistant");
   };
 
@@ -22,14 +22,16 @@ export default function ProgressSteps({ currentStep = 1 }) {
 
         {/* Connecting line */}
 
-        <div className="
-          absolute
-          left-[9%]
-          right-[9%]
-          top-4.5
-          h-0.5
-          bg-slate-200
-        " />
+        <div
+          className="
+            absolute
+            left-[9%]
+            right-[9%]
+            top-4.5
+            h-0.5
+            bg-slate-200
+          "
+        />
 
         <div className="relative grid grid-cols-4">
 
@@ -90,86 +92,37 @@ export default function ProgressSteps({ currentStep = 1 }) {
       </div>
 
 
-      {/* ================= AI MIC ================= */}
+      {/* ================= AI HELP ================= */}
 
       <div className="mt-5 flex justify-center">
 
         <button
           type="button"
-          onClick={openAssistant}
+          onClick={openAIAssistant}
           title="Open AI Scheme Assistant"
           className="
-            group
-            flex
-            h-11
-            w-11
-            items-center
-            justify-center
-            rounded-full
-            border
+             rounded-lg
+              border
             border-[#d7aa2d]
             bg-white
+              px-5
+              py-2
+              text-[12px]
+              font-semibold
             text-[#0d2b55]
-            shadow-sm
-            transition-all
-            duration-200
+              shadow-sm
+              transition-all
+              duration-200
             hover:bg-[#0d2b55]
             hover:text-white
             hover:shadow-md
             active:scale-95
           "
         >
-
-          {/* Microphone SVG */}
-
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-          >
-            <rect
-              x="9"
-              y="2"
-              width="6"
-              height="12"
-              rx="3"
-            />
-
-            <path d="M5 10a7 7 0 0 0 14 0" />
-
-            <line
-              x1="12"
-              y1="19"
-              x2="12"
-              y2="22"
-            />
-
-            <line
-              x1="8"
-              y1="22"
-              x2="16"
-              y2="22"
-            />
-
-          </svg>
-
+          AI Help
         </button>
 
       </div>
-
-      <p className="
-        mt-1.5
-        text-center
-        text-[10px]
-        text-slate-400
-      ">
-        Ask AI Assistant
-      </p>
 
     </div>
   );

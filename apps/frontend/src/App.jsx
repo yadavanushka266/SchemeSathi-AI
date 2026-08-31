@@ -13,7 +13,8 @@ import {
   OtherDetailsPage,
   ReviewPage,
   MatchingSchemesPage,
-  AIAssistantPage
+  AIAssistantPage,
+  VoiceAssistantPage
 } from "./components/findSchemes";
 
 import AboutPage from "./components/about/AboutPage";
@@ -103,6 +104,10 @@ if (path === "/resources") {
 
 if (path === "/ai-assistant") {
   return <AIAssistantPage />;
+}
+
+if( path === "/voice-assistant") {
+  return <VoiceAssistantPage />;
 }
 
   return <HomePage />;

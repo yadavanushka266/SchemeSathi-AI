@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Header from "../layout/Header";
+import { Footer } from "../layout";
 
 export default function AIAssistantPage() {
   const [message, setMessage] = useState("");
@@ -16,6 +17,10 @@ export default function AIAssistantPage() {
     "How to apply for Stand-Up India?",
     "More schemes for handicrafts",
   ];
+
+  const openVoiceAssistant = () => {
+    window.location.assign("/voice-assistant");
+  };
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -102,7 +107,7 @@ export default function AIAssistantPage() {
                 hover:bg-[#173b70]
               "
             >
-              ＋ New Chat
+              + New Chat
             </button>
 
           </div>
@@ -150,15 +155,7 @@ export default function AIAssistantPage() {
           </div>
 
 
-          {/* ================= SIDEBAR BOTTOM ================= */}
 
-          <div className="mt-auto px-7 pb-4">
-
-            <p className="text-[12px] text-white/90">
-              SchemeSaathi AI
-            </p>
-
-          </div>
 
         </aside>
 
@@ -210,7 +207,7 @@ export default function AIAssistantPage() {
               flex-col
               overflow-hidden
             "
-          >
+          />
 
             <div
               className="
@@ -397,6 +394,33 @@ export default function AIAssistantPage() {
                   "
                 />
 
+                <div className="mt-5 flex justify-center">
+
+        <button
+          type="button"
+          onClick={openVoiceAssistant}
+          title="Open Voice Assistant"
+          className="
+             rounded-lg
+      border
+      border-[#d7aa2d]
+      bg-white
+      px-5
+      py-2
+      text-[12px]
+      font-semibold
+      text-[#0d2b55]
+      shadow-sm
+      transition-all
+      duration-200
+      hover:bg-[#0d2b55]
+      hover:text-white
+      hover:shadow-md
+      active:scale-95
+          "
+        >
+          mic
+        </button>
 
                 {/* SEND BUTTON */}
 
@@ -430,38 +454,13 @@ export default function AIAssistantPage() {
           </div>
 
 
-          {/* =================================================
-              FOOTER
-          ================================================= */}
 
-          <footer
-            className="
-              flex
-              min-h-8
-              items-center
-              justify-between
-              bg-[#0d2b55]
-              px-7
-              text-[10px]
-              text-white
-              sm:px-9
-            "
-          >
-
-            <p>
-              Empowering marginalized entrepreneurs with the
-              right government support.
-            </p>
-
-            <p className="text-[#e4b32e]">
-              MoSJE • Scheme Discovery
-            </p>
-
-          </footer>
 
         </main>
 
       </div>
+
+      <Footer />
 
     </div>
   );
