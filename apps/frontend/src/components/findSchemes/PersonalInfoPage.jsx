@@ -3,9 +3,7 @@ import ProgressSteps from "./ProgressSteps";
 import WhyAskCard from "./WhyAskCard";
 import { MainLayout } from "../layout";
 
-/* ============================================================
-   INITIAL FORM
-============================================================ */
+/* ====== INITIAL FORM ====== */
 
 const initialForm = {
   fullName: "",
@@ -16,9 +14,7 @@ const initialForm = {
   district: "",
 };
 
-/* ============================================================
-   OPTIONS
-============================================================ */
+/* ====== OPTIONS ====== */
 
 const genders = [
   "Male",
@@ -62,15 +58,11 @@ const districts = [
   "Varanasi",
 ];
 
-/* ============================================================
-   LOCAL STORAGE KEY
-============================================================ */
+/* ====== LOCAL STORAGE KEY ====== */
 
 const PERSONAL_STORAGE_KEY = "schemeSaathiPersonalDetails";
 
-/* ============================================================
-   LOAD SAVED PERSONAL INFORMATION
-============================================================ */
+/* ====== LOAD SAVED PERSONAL INFORMATION ====== */
 
 function getSavedPersonalInfo() {
   try {
@@ -96,9 +88,7 @@ function getSavedPersonalInfo() {
   }
 }
 
-/* ============================================================
-   PAGE
-============================================================ */
+/* ====== PAGE ====== */
 
 export default function PersonalInfoPage() {
   const editMode = sessionStorage.getItem(
@@ -107,9 +97,7 @@ export default function PersonalInfoPage() {
 
   const isEditMode = editMode === "personal";
 
-  /* ==========================================================
-     FORM STATE
-  ========================================================== */
+  /* ====== FORM STATE ====== */
 
   const [form, setForm] = useState(() => {
     if (isEditMode) {
@@ -121,9 +109,7 @@ export default function PersonalInfoPage() {
     };
   });
 
-  /* ==========================================================
-     HANDLE CHANGE
-  ========================================================== */
+  /* ====== HANDLE CHANGE ====== */
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -134,9 +120,7 @@ export default function PersonalInfoPage() {
     }));
   };
 
-  /* ==========================================================
-     VALIDATION
-  ========================================================== */
+  /* ====== VALIDATION ====== */
 
   const validateForm = () => {
     if (!form.fullName.trim()) {
@@ -179,9 +163,7 @@ export default function PersonalInfoPage() {
     return true;
   };
 
-  /* ==========================================================
-     CONTINUE
-  ========================================================== */
+  /* ====== CONTINUE ====== */
 
   const handleContinue = (e) => {
     e.preventDefault();
@@ -372,9 +354,7 @@ export default function PersonalInfoPage() {
   );
 }
 
-/* ============================================================
-   INPUT COMPONENT
-============================================================ */
+/* ====== INPUT COMPONENT ====== */
 
 function FormInput({
   label,
@@ -409,9 +389,7 @@ function FormInput({
   );
 }
 
-/* ============================================================
-   SELECT COMPONENT
-============================================================ */
+/* ====== SELECT COMPONENT ====== */
 
 function FormSelect({
   label,

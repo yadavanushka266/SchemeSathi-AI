@@ -1,9 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { MainLayout } from "../layout";
 
-/* ============================================================
-   RESOURCE DATA
-============================================================ */
+/* ====== RESOURCE DATA ====== */
 
 const resources = [
   {
@@ -127,9 +125,7 @@ const resources = [
   },
 ];
 
-/* ============================================================
-   RESOURCE CATEGORIES
-============================================================ */
+/* ====== RESOURCE CATEGORIES ====== */
 
 const resourceCategories = [
   "All",
@@ -140,17 +136,13 @@ const resourceCategories = [
   "Tips",
 ];
 
-/* ============================================================
-   PAGE
-============================================================ */
+/* ====== PAGE ====== */
 
 export default function ResourcesPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
 
-  /* ==========================================================
-     FILTER RESOURCES
-  ========================================================== */
+  /* ====== FILTER RESOURCES ====== */
 
   const filteredResources = useMemo(() => {
     const searchText = search.trim().toLowerCase();
@@ -179,17 +171,10 @@ export default function ResourcesPage() {
     });
   }, [search, category]);
 
-  /* ==========================================================
-     OPEN RESOURCE
-  ========================================================== */
+  /* ====== OPEN RESOURCE ====== */
 
   const handleOpenResource = (resource) => {
-    /*
-     * Save selected resource.
-     * This can be used later if you create
-     * individual resource detail pages.
-     */
-
+    
     localStorage.setItem(
       "schemeSaathiSelectedResource",
       JSON.stringify(resource)
@@ -205,9 +190,7 @@ export default function ResourcesPage() {
 
       <div className="min-h-[calc(100vh-132px)] bg-[#f7f8fc] pb-20">
 
-        {/* ==================================================
-            HERO
-        ================================================== */}
+        {/*==== HERO ===== */}
 
         <section className="border-b border-slate-200 bg-white">
 
@@ -317,9 +300,7 @@ export default function ResourcesPage() {
 
         </section>
 
-        {/* ==================================================
-            MAIN CONTENT
-        ================================================== */}
+        {/* ====== MAIN CONTENT ====== */}
 
         <main className="mx-auto max-w-300 px-5 sm:px-8">
 
@@ -367,9 +348,7 @@ export default function ResourcesPage() {
 
           </div>
 
-          {/* ==================================================
-              CATEGORY FILTER
-          ================================================== */}
+          {/* ====== CATEGORY FILTER ====== */}
 
           <div className="mb-6 flex flex-wrap gap-2">
 
@@ -405,9 +384,7 @@ export default function ResourcesPage() {
 
           </div>
 
-          {/* ==================================================
-              RESOURCE GRID
-          ================================================== */}
+          {/* ====== RESOURCE GRID ====== */}
 
           {filteredResources.length === 0 ? (
 
@@ -445,9 +422,7 @@ export default function ResourcesPage() {
 
           )}
 
-          {/* ==================================================
-              QUICK HELP SECTION
-          ================================================== */}
+          {/* ====== QUICK HELP SECTION ====== */}
 
           <section
             className="
@@ -546,9 +521,7 @@ export default function ResourcesPage() {
   );
 }
 
-/* ============================================================
-   RESOURCE CARD
-============================================================ */
+/* ====== RESOURCE CARD ====== */
 
 function ResourceCard({
   resource,
@@ -674,9 +647,7 @@ function ResourceCard({
   );
 }
 
-/* ============================================================
-   EMPTY STATE
-============================================================ */
+/* ====== EMPTY STATE ====== */
 
 function EmptyResources({ onReset }) {
   return (
