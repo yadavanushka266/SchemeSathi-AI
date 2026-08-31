@@ -6,3 +6,4 @@ export { default as OtherDetailsPage } from "./OtherDetailsPage";
 export { default as ReviewPage } from "./ReviewPage"; 
 export { default as MatchingSchemesPage } from "./MatchingSchemesPage";
 export { default as AIAssistantPage } from "./AIAssistantPage";
+export { default as VoiceAssistantPage } from "./VoiceAssistantPage";
