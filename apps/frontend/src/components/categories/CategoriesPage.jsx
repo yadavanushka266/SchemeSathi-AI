@@ -1,9 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { MainLayout } from "../layout";
 
-/* ============================================================
-   CATEGORY DATA
-============================================================ */
+/* ======= CATEGORY DATA ========= */
 
 const categories = [
   {
@@ -147,24 +145,14 @@ export default function CategoriesPage() {
     });
   }, [search]);
 
-  /* ==========================================================
-     EXPLORE CATEGORY
-  ========================================================== */
+  /* ======= EXPLORE CATEGORY ======== */
 
   const handleExplore = (category) => {
-    /*
-     * Save selected category so the Matching Schemes page
-     * can use it later if required.
-     */
-
+    
     localStorage.setItem(
       "schemeSaathiSelectedCategory",
       category.name
     );
-
-    /*
-     * Go to scheme results.
-     */
 
     window.location.assign(
       "/find-schemes/matching-schemes"
@@ -176,9 +164,7 @@ export default function CategoriesPage() {
 
       <div className="min-h-[calc(100vh-132px)] bg-[#f7f8fc] pb-20">
 
-        {/* ==================================================
-            HERO SECTION
-        ================================================== */}
+        {/* ====== HERO SECTION ======= */}
 
         <section className="border-b border-slate-200 bg-white">
 
@@ -289,10 +275,7 @@ export default function CategoriesPage() {
         </section>
 
 
-        {/* ==================================================
-            MAIN CONTENT
-        ================================================== */}
-
+        {/* ============= MAIN CONTENT ============= */}
         <main className="mx-auto max-w-300 px-5 sm:px-8">
 
           {/* ================= SUMMARY ================= */}
@@ -330,10 +313,7 @@ export default function CategoriesPage() {
           </div>
 
 
-          {/* ==================================================
-              CATEGORY GRID
-          ================================================== */}
-
+          {/* ============= CATEGORY GRID ============= */}
           {filteredCategories.length === 0 ? (
 
             <EmptyCategories
@@ -376,9 +356,7 @@ export default function CategoriesPage() {
 }
 
 
-/* ============================================================
-   CATEGORY CARD
-============================================================ */
+/* ======= CATEGORY CARD ======= */
 
 function CategoryCard({
   category,
@@ -525,9 +503,7 @@ function CategoryCard({
 }
 
 
-/* ============================================================
-   EMPTY STATE
-============================================================ */
+/* ======= EMPTY STATE ========= */
 
 function EmptyCategories({ onReset }) {
   return (

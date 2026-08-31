@@ -245,9 +245,7 @@ export default function SignUpPage() {
 }
 
 
-/* =====================================================
-   REUSABLE INPUT COMPONENT
-===================================================== */
+/* ======= REUSABLE INPUT COMPONENT ============= */
 
 function FormInput({
   label,

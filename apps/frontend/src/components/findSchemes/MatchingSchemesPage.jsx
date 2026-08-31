@@ -2,9 +2,7 @@ import React, { useMemo, useState } from "react";
 import ProgressSteps from "./ProgressSteps";
 import { MainLayout } from "../layout";
 
-/* ============================================================
-   SAMPLE SCHEME DATA
-============================================================ */
+/* ====== SAMPLE SCHEME DATA ====== */
 
 const schemes = [
   {
@@ -92,16 +90,12 @@ const schemes = [
   },
 ];
 
-/* ============================================================
-   COMPONENT
-============================================================ */
+/* ====== COMPONENT ====== */
 
 export default function MatchingSchemesPage() {
   const [search, setSearch] = useState("");
 
-  /* ==========================================================
-     LOAD SAVED USER INFORMATION
-  ========================================================== */
+  /* ===== LOAD SAVED USER INFORMATION ======= */
 
   const personalDetails = getLocalStorageData(
     "schemeSaathiPersonalInfo"
@@ -115,9 +109,7 @@ export default function MatchingSchemesPage() {
     "schemeSaathiOtherDetails"
   );
 
-  /* ==========================================================
-     PROFILE MATCHING
-  ========================================================== */
+  /* ======= PROFILE MATCHING ======= */
 
   const matchedSchemes = useMemo(() => {
     const interestedType =
@@ -136,9 +128,7 @@ export default function MatchingSchemesPage() {
       .map((scheme) => {
         let score = 0;
 
-        /* -----------------------------------------------
-           INTERESTED SCHEME TYPE
-        ------------------------------------------------ */
+        /* -------- INTERESTED SCHEME TYPE ------- */
 
         if (interestedType) {
           const interestedText =
@@ -158,9 +148,7 @@ export default function MatchingSchemesPage() {
           }
         }
 
-        /* -----------------------------------------------
-           PREFERRED SUPPORT
-        ------------------------------------------------ */
+        /* ------ PREFERRED SUPPORT ------ */
 
         if (preferredSupport) {
           const supportText =
@@ -180,9 +168,7 @@ export default function MatchingSchemesPage() {
           }
         }
 
-        /* -----------------------------------------------
-           BUSINESS TYPE
-        ------------------------------------------------ */
+        /* --------- BUSINESS TYPE -------- */
 
         if (businessType) {
           const businessText =
@@ -202,9 +188,7 @@ export default function MatchingSchemesPage() {
           }
         }
 
-        /* -----------------------------------------------
-           BUSINESS STAGE
-        ------------------------------------------------ */
+        /* ---- BUSINESS STAGE ------- */
 
         if (businessStage) {
           const stageText =
@@ -235,9 +219,7 @@ export default function MatchingSchemesPage() {
       );
   }, [businessDetails, otherDetails]);
 
-  /* ==========================================================
-     SEARCH
-  ========================================================== */
+  /* ====== SEARCH ======== */
 
   const filteredSchemes = useMemo(() => {
     const searchText =
@@ -278,9 +260,7 @@ export default function MatchingSchemesPage() {
     });
   }, [matchedSchemes, search]);
 
-  /* ==========================================================
-     VIEW SCHEME
-  ========================================================== */
+  /* ======= VIEW SCHEME ========= */
 
   const handleViewScheme = (scheme) => {
     localStorage.setItem(
@@ -292,9 +272,7 @@ export default function MatchingSchemesPage() {
       `/find-schemes/scheme/${scheme.id}`;
   };
 
-  /* ==========================================================
-     EDIT PROFILE
-  ========================================================== */
+  /* ======== EDIT PROFILE ====== */
 
   const handleEdit = (section) => {
     sessionStorage.setItem(
@@ -320,26 +298,20 @@ export default function MatchingSchemesPage() {
     }
   };
 
-  /* ==========================================================
-     RENDER
-  ========================================================== */
+  /* ======== RENDER ======= */
 
   return (
     <MainLayout>
 
       <div className="min-h-[calc(100vh-132px)] bg-[#f7f8fc] pb-20">
 
-        {/* ==================================================
-            PROGRESS
-        ================================================== */}
+        {/* ====== PROGRESS ======= */}
 
         <ProgressSteps currentStep={5} />
 
         <div className="mx-auto max-w-300 px-5 sm:px-8">
 
-          {/* ==================================================
-              HEADER
-          ================================================== */}
+          {/* ====== HEADER ========= */}
 
           <div className="pt-9">
 
@@ -379,9 +351,7 @@ export default function MatchingSchemesPage() {
 
           </div>
 
-          {/* ==================================================
-              PROFILE SUMMARY
-          ================================================== */}
+          {/* ====== PROFILE SUMMARY ======== */}
 
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
@@ -483,9 +453,7 @@ export default function MatchingSchemesPage() {
 
           </section>
 
-          {/* ==================================================
-              SEARCH ONLY
-          ================================================== */}
+          {/* ====== SEARCH ONLY ======== */}
 
           <section className="mt-6">
 
@@ -525,9 +493,7 @@ export default function MatchingSchemesPage() {
 
           </section>
 
-          {/* ==================================================
-              RESULTS
-          ================================================== */}
+          {/* ====== RESULTS ======== */}
 
           <div className="mt-6">
 
@@ -569,9 +535,7 @@ export default function MatchingSchemesPage() {
   );
 }
 
-/* ============================================================
-   SCHEME CARD
-============================================================ */
+/* ====== SCHEME CARD ====== */
 
 function SchemeCard({ scheme, onView }) {
 
@@ -709,9 +673,7 @@ function SchemeCard({ scheme, onView }) {
   );
 }
 
-/* ============================================================
-   PROFILE TAG
-============================================================ */
+/* ====== PROFILE TAG ====== */
 
 function ProfileTag({ children }) {
 
@@ -722,9 +684,7 @@ function ProfileTag({ children }) {
   );
 }
 
-/* ============================================================
-   EMPTY RESULTS
-============================================================ */
+/* ====== EMPTY RESULTS ====== */
 
 function EmptyResults({ onReset }) {
 
@@ -756,9 +716,7 @@ function EmptyResults({ onReset }) {
   );
 }
 
-/* ============================================================
-   LOCAL STORAGE HELPER
-============================================================ */
+/* ====== LOCAL STORAGE HELPER ====== */
 
 function getLocalStorageData(key) {
 

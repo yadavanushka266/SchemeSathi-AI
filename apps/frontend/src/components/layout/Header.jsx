@@ -43,9 +43,7 @@ export default function Header() {
 
       <div className="mx-auto flex h-17.5 max-w-7xl items-center px-4 sm:px-6 lg:px-10">
 
-        {/* =====================================================
-            LEFT SIDE
-        ====================================================== */}
+        {/* ============= LEFT SIDE =========== */}
 
         <div className="flex min-w-0 items-center">
 
@@ -98,9 +96,7 @@ export default function Header() {
         </div>
 
 
-        {/* =====================================================
-            DESKTOP NAVIGATION
-        ====================================================== */}
+        {/* ====== DESKTOP NAVIGATION ====== */}
 
         <nav className="ml-auto hidden items-center gap-7 lg:flex xl:gap-10">
 
@@ -134,9 +130,7 @@ export default function Header() {
         </nav>
 
 
-        {/* =====================================================
-            RIGHT SIDE ACTIONS
-        ====================================================== */}
+        {/* ====== RIGHT SIDE ACTIONS ====== */}
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3 lg:ml-7">
 
@@ -187,9 +181,7 @@ export default function Header() {
       </div>
 
 
-      {/* =======================================================
-          MOBILE / TABLET DROPDOWN MENU
-      ======================================================== */}
+      {/* ====== MOBILE / TABLET DROPDOWN MENU ====== */}
 
       {menuOpen && (
         <div

@@ -45,16 +45,12 @@ export default function AIAssistantPage() {
   return (
     <div className="min-h-screen bg-white text-[#172b49]">
 
-      {/* =====================================================
-          MAIN NAVBAR
-      ===================================================== */}
+      {/* ======== MAIN NAVBAR ====== */}
 
       <Header />
 
 
-      {/* =====================================================
-          AI ASSISTANT AREA
-      ===================================================== */}
+      {/* ============= AI ASSISTANT AREA ============= */}
 
       <div
         className="
@@ -67,9 +63,7 @@ export default function AIAssistantPage() {
         "
       >
 
-        {/* ===================================================
-            LEFT SIDEBAR
-        =================================================== */}
+        {/* ======== LEFT SIDEBAR ====== */}
 
         <aside
           className="
@@ -160,15 +154,11 @@ export default function AIAssistantPage() {
         </aside>
 
 
-        {/* ===================================================
-            MAIN CHAT AREA
-        =================================================== */}
+        {/* ============= MAIN CHAT AREA ============= */}
 
         <main className="flex min-w-0 flex-1 flex-col">
 
-          {/* =================================================
-              CHAT HEADER
-          ================================================= */}
+          {/* ============ CHAT HEADER =========== */}
 
           <div className="px-7 pt-5 sm:px-9">
 
@@ -196,9 +186,7 @@ export default function AIAssistantPage() {
           </div>
 
 
-          {/* =================================================
-              CHAT CONTENT
-          ================================================= */}
+          {/* ============= CHAT CONTENT ============= */}
 
           <div
             className="
@@ -220,9 +208,7 @@ export default function AIAssistantPage() {
               "
             >
 
-              {/* =================================================
-                  USER MESSAGE
-              ================================================= */}
+              {/* ============ USER MESSAGE =========== */}
 
               <div className="flex justify-end">
 
@@ -247,9 +233,7 @@ export default function AIAssistantPage() {
               </div>
 
 
-              {/* =================================================
-                  AI RESPONSE
-              ================================================= */}
+              {/* ============ AI RESPONSE =========== */}
 
               <div className="mt-5">
 
@@ -311,9 +295,7 @@ export default function AIAssistantPage() {
               </div>
 
 
-              {/* =================================================
-                  SUGGESTED QUESTIONS
-              ================================================= */}
+              {/* ============= SUGGESTED QUESTIONS ============= */}
 
               <div
                 className="
@@ -354,9 +336,7 @@ export default function AIAssistantPage() {
             </div>
 
 
-            {/* =================================================
-                MESSAGE INPUT
-            ================================================= */}
+            {/* ======= MESSAGE INPUT ======= */}
 
             <div
               className="

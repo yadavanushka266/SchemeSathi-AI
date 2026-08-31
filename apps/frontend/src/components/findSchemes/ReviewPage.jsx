@@ -22,9 +22,7 @@ function getData(key) {
   }
 }
 
-/* ============================================================
-   REVIEW PAGE
-============================================================ */
+/* ====== REVIEW PAGE ===== */
 
 export default function ReviewPage() {
 
@@ -40,9 +38,7 @@ export default function ReviewPage() {
     "schemeSaathiOtherDetails"
   );
 
-  /* ==========================================================
-     EDIT PERSONAL
-  ========================================================== */
+  /* ====== EDIT PERSONAL ====== */
 
   const handleEditPersonal = () => {
 
@@ -56,9 +52,7 @@ export default function ReviewPage() {
     );
   };
 
-  /* ==========================================================
-     EDIT BUSINESS
-  ========================================================== */
+  /* ====== EDIT BUSINESS ====== */
 
   const handleEditBusiness = () => {
 
@@ -72,9 +66,7 @@ export default function ReviewPage() {
     );
   };
 
-  /* ==========================================================
-     EDIT OTHER DETAILS
-  ========================================================== */
+  /* ====== EDIT OTHER DETAILS ====== */
 
   const handleEditOther = () => {
 
@@ -88,28 +80,16 @@ export default function ReviewPage() {
     );
   };
 
-  /* ==========================================================
-     FIND MATCHING SCHEMES
-  ========================================================== */
+  /* ==== FIND MATCHING SCHEMES ===== */
 
   const handleFindSchemes = () => {
-
-    /*
-     * Make sure all data is saved before
-     * moving to Step 5.
-     *
-     * The data is already stored by each form,
-     * so here we only navigate.
-     */
 
     window.location.assign(
       "/find-schemes/results"
     );
   };
 
-  /* ==========================================================
-     RENDER
-  ========================================================== */
+  /* ====== RENDER ====== */
 
   return (
     <MainLayout>
@@ -122,15 +102,11 @@ export default function ReviewPage() {
         "
       >
 
-        {/* ====================================================
-            PROGRESS
-        ==================================================== */}
+        {/* ====== PROGRESS ====== */}
 
         <ProgressSteps currentStep={4} />
 
-        {/* ====================================================
-            CONTENT
-        ==================================================== */}
+        {/* ====== CONTENT ====== */}
 
         <div
           className="
@@ -141,9 +117,7 @@ export default function ReviewPage() {
           "
         >
 
-          {/* ==================================================
-              HEADING
-          ================================================== */}
+          {/* ====== HEADING ====== */}
 
           <div className="mt-9">
 
@@ -171,15 +145,11 @@ export default function ReviewPage() {
 
           </div>
 
-          {/* ==================================================
-              REVIEW CARDS
-          ================================================== */}
+          {/* ====== REVIEW CARDS ====== */}
 
           <div className="mt-6 space-y-5">
 
-            {/* ==================================================
-                PERSONAL INFORMATION
-            ================================================== */}
+            {/* ====== PERSONAL INFORMATION ====== */}
 
             <ReviewCard
               title="Personal Information"
@@ -223,9 +193,7 @@ export default function ReviewPage() {
 
             </ReviewCard>
 
-            {/* ==================================================
-                BUSINESS DETAILS
-            ================================================== */}
+            {/* ====== BUSINESS DETAILS ====== */}
 
             <ReviewCard
               title="Business Details"
@@ -269,9 +237,7 @@ export default function ReviewPage() {
 
             </ReviewCard>
 
-            {/* ==================================================
-                OTHER DETAILS
-            ================================================== */}
+            {/* ====== OTHER DETAILS ====== */}
 
             <ReviewCard
               title="Other Details"
@@ -317,9 +283,7 @@ export default function ReviewPage() {
 
           </div>
 
-          {/* ==================================================
-              BOTTOM ACTIONS
-          ================================================== */}
+          {/* ====== BOTTOM ACTIONS ====== */}
 
           <div
             className="
@@ -332,9 +296,7 @@ export default function ReviewPage() {
             "
           >
 
-            {/* ==================================================
-                BACK
-            ================================================== */}
+            {/* ====== BACK ====== */}
 
             <button
               type="button"
@@ -362,9 +324,7 @@ export default function ReviewPage() {
               ← Back
             </button>
 
-            {/* ==================================================
-                FIND SCHEMES
-            ================================================== */}
+            {/* ====== FIND SCHEMES ====== */}
 
             <button
               type="button"
@@ -398,9 +358,7 @@ export default function ReviewPage() {
   );
 }
 
-/* ============================================================
-   REVIEW CARD
-============================================================ */
+/* ====== REVIEW CARD ====== */
 
 function ReviewCard({
   title,
@@ -420,9 +378,7 @@ function ReviewCard({
       "
     >
 
-      {/* ======================================================
-          CARD HEADER
-      ====================================================== */}
+      {/* ===== CARD HEADER ====== */}
 
       <div
         className="
@@ -466,9 +422,7 @@ function ReviewCard({
 
       </div>
 
-      {/* ======================================================
-          CARD CONTENT
-      ====================================================== */}
+      {/* ====== CARD CONTENT ====== */}
 
       <div className="pt-5">
         {children}
@@ -478,9 +432,7 @@ function ReviewCard({
   );
 }
 
-/* ============================================================
-   INFORMATION GRID
-============================================================ */
+/* ====== INFORMATION GRID ====== */
 
 function InfoGrid({ items }) {
 

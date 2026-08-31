@@ -1,5 +1,5 @@
 import React from "react";
-
+import logo from "../logo.jpg";
 export default function AuthLayout({ children }) {
   return (
     <div className="min-h-screen bg-[#f5f6fa] lg:grid lg:grid-cols-[33%_67%]">
@@ -8,21 +8,7 @@ export default function AuthLayout({ children }) {
       <aside className="hidden min-h-screen bg-[#0d2b55] px-12 py-12 text-white lg:flex lg:flex-col">
 
         {/* Logo */}
-        <a
-          href="/"
-          className="flex items-center gap-3"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e4b52f]">
-            <span className="text-lg font-extrabold text-[#0d2b55]">
-              S
-            </span>
-          </div>
-
-          <span className="text-[20px] font-bold tracking-tight">
-            SchemeSaathi AI
-          </span>
-        </a>
-
+        <img src={logo} alt="Logo" className="h-17 w-auto" />
 
         {/* Main Content */}
         <div className="mt-20 max-w-87.5">

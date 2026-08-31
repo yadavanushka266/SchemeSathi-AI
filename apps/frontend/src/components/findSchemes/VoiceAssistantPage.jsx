@@ -5,9 +5,7 @@ import { Footer } from "../layout";
 
 export default function VoiceAssistantPage() {
 
-  /* ============================================================
-     STATE
-  ============================================================ */
+  /* ===== STATE ====== */
 
   const [isListening, setIsListening] = useState(false);
 
@@ -23,9 +21,7 @@ export default function VoiceAssistantPage() {
   const recognitionRef = useRef(null);
 
 
-  /* ============================================================
-     SPEECH RECOGNITION SETUP
-  ============================================================ */
+  /* ===== SPEECH RECOGNITION SETUP ===== */
 
   useEffect(() => {
 
@@ -85,9 +81,7 @@ export default function VoiceAssistantPage() {
   }, []);
 
 
-  /* ============================================================
-     START / STOP MICROPHONE
-  ============================================================ */
+  /* ===== START / STOP MICROPHONE ===== */
 
   const handleMicClick = () => {
 
@@ -129,9 +123,7 @@ export default function VoiceAssistantPage() {
   };
 
 
-  /* ============================================================
-     SIMPLE PROFILE EXTRACTION
-  ============================================================ */
+  /* ===== SIMPLE PROFILE EXTRACTION ===== */
 
   const extractProfile = (text) => {
 
@@ -291,9 +283,7 @@ export default function VoiceAssistantPage() {
   };
 
 
-  /* ============================================================
-     EDIT DETAILS
-  ============================================================ */
+  /* ====== EDIT DETAILS ====== */
 
   const handleEditDetails = () => {
 
@@ -304,9 +294,7 @@ export default function VoiceAssistantPage() {
   };
 
 
-  /* ============================================================
-     CONFIRM & FIND
-  ============================================================ */
+  /* ====== CONFIRM & FIND ====== */
 
   const handleConfirmAndFind = () => {
 
@@ -347,9 +335,7 @@ export default function VoiceAssistantPage() {
   };
 
 
-  /* ============================================================
-     RENDER
-  ============================================================ */
+  /* ===== RENDER ====== */
 
   return (
     <div className="min-h-screen bg-white text-[#172b49]">
@@ -373,9 +359,7 @@ export default function VoiceAssistantPage() {
           "
         >
 
-          {/* ==================================================
-              PAGE HEADER
-          ================================================== */}
+          {/* ====== PAGE HEADER ===== */}
 
           <div className="pt-10">
 
@@ -405,9 +389,7 @@ export default function VoiceAssistantPage() {
           </div>
 
 
-          {/* ==================================================
-              MAIN CONTENT
-          ================================================== */}
+          {/* ====== MAIN CONTENT ===== */}
 
           <div
             className="
@@ -418,9 +400,7 @@ export default function VoiceAssistantPage() {
             "
           >
 
-            {/* ==================================================
-                LEFT MIC CARD
-            ================================================== */}
+            {/* ====== LEFT MIC CARD ====== */}
 
             <section
               className="
@@ -458,9 +438,7 @@ export default function VoiceAssistantPage() {
               </p>
 
 
-              {/* ==================================================
-                  MICROPHONE
-              ================================================== */}
+              {/* ====== MICROPHONE ====== */}
 
               <div
                 className="
@@ -603,9 +581,7 @@ export default function VoiceAssistantPage() {
                 </p>
 
 
-                {/* ==================================================
-                    TRANSCRIPT
-                ================================================== */}
+                {/* ====== TRANSCRIPT ====== */}
 
                 {transcript && (
                   <div
@@ -634,9 +610,7 @@ export default function VoiceAssistantPage() {
             </section>
 
 
-            {/* ==================================================
-                RIGHT PROFILE CARD
-            ================================================== */}
+            {/* ====== RIGHT PROFILE CARD ====== */}
 
             <section
               className="
@@ -695,9 +669,7 @@ export default function VoiceAssistantPage() {
               />
 
 
-              {/* ==================================================
-                  ACTION BUTTONS
-              ================================================== */}
+              {/* ====== ACTION BUTTONS ====== */}
 
               <div
                 className="
@@ -766,9 +738,7 @@ export default function VoiceAssistantPage() {
 }
 
 
-/* ============================================================
-   PROFILE FIELD
-============================================================ */
+/* ===== PROFILE FIELD ===== */
 
 function ProfileField({
   label,

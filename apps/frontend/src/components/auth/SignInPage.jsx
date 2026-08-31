@@ -42,7 +42,7 @@ export default function SignInPage() {
     /*
       DEMO LOGIN
 
-      Replace this with your backend API.
+      Replace this with API.
     */
 
     const savedUser = localStorage.getItem(

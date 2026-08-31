@@ -6,9 +6,7 @@ export default function AboutPage() {
     <MainLayout>
       <div className="min-h-[calc(100vh-132px)] bg-[#f7f8fc]">
 
-        {/* =====================================================
-            HERO SECTION
-        ===================================================== */}
+        {/* ========= HERO SECTION ========= */}
 
         <section className="bg-[#0d2b55]">
           <div className="mx-auto max-w-287.5 px-5 py-16 sm:px-8 lg:py-20">
@@ -40,9 +38,7 @@ export default function AboutPage() {
         </section>
 
 
-        {/* =====================================================
-            WHAT IS SCHEMESAATHI
-        ===================================================== */}
+        {/* ======= WHAT IS SCHEMESAATHI ========= */}
 
         <section className="mx-auto max-w-287.5 px-5 py-14 sm:px-8">
 
@@ -101,9 +97,7 @@ export default function AboutPage() {
         </section>
 
 
-        {/* =====================================================
-            HOW IT WORKS
-        ===================================================== */}
+        {/* ========= HOW IT WORKS========= */}
 
         <section className="border-y border-slate-200 bg-white">
 
@@ -160,9 +154,7 @@ export default function AboutPage() {
         </section>
 
 
-        {/* =====================================================
-            FEATURES
-        ===================================================== */}
+        {/* ========= FEATURES ========== */}
 
         <section className="mx-auto max-w-287.5 px-5 py-14 sm:px-8">
 
@@ -222,9 +214,7 @@ export default function AboutPage() {
         </section>
 
 
-        {/* =====================================================
-            DISCLAIMER
-        ===================================================== */}
+        {/* ========= DISCLAIMER ======== */}
 
         <section className="mx-auto max-w-287.5 px-5 pb-14 sm:px-8">
 
@@ -260,9 +250,7 @@ export default function AboutPage() {
         </section>
 
 
-        {/* =====================================================
-            CTA
-        ===================================================== */}
+        {/* ======= CTA ======= */}
 
         <section className="bg-[#0d2b55]">
 
@@ -294,9 +282,7 @@ export default function AboutPage() {
 }
 
 
-/* ============================================================
-   STEP CARD
-============================================================ */
+/* ======= STEP CARD =========== */
 
 function StepCard({
   number,
@@ -329,9 +315,7 @@ function StepCard({
 }
 
 
-/* ============================================================
-   FEATURE CARD
-============================================================ */
+/* ======= FEATURE CARD ======== */
 
 function FeatureCard({
   icon,
