@@ -72,8 +72,7 @@ export default function SignUpPage() {
 
     const user = {
       fullName: formData.fullName,
-      mobile: formData.mobile,
-      email: formData.email,
+      "email/mobile": formData["email/mobile"],
     };
 
 
@@ -116,29 +115,16 @@ export default function SignUpPage() {
           />
 
 
-          {/* ================= MOBILE ================= */}
+          {/* ================= EMAIL/MOBILE ================= */}
 
           <FormInput
-            label="Mobile Number"
-            name="mobile"
-            type="tel"
-            placeholder="Enter mobile number"
-            value={formData.mobile}
+            label="Email /Mobile Number"
+            name="email/mobile"
+            type="email/tel"
+            placeholder="Enter email/mobile number"
+            value={formData["email/mobile"]}
             onChange={handleChange}
           />
-
-
-          {/* ================= EMAIL ================= */}
-
-          <FormInput
-            label="Email Address"
-            name="email"
-            type="email"
-            placeholder="Enter email address"
-            value={formData.email}
-            onChange={handleChange}
-          />
-
 
           {/* ================= PASSWORD ================= */}
 
@@ -234,6 +220,20 @@ export default function SignUpPage() {
             </a>
 
           </p>
+
+           <a
+            href="/"
+            className="
+              mt-8
+              block
+              text-center
+              text-xs
+              text-slate-400
+              hover:text-[#0d2b55]
+            "
+          >
+            ← Back to Home
+          </a>
 
         </form>
 

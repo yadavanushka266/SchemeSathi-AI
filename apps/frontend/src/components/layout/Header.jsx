@@ -7,6 +7,7 @@ const navItems = [
   { label: "Categories", href: "/categories" },
   { label: "Resources", href: "/resources" },
   { label: "About", href: "/about" },
+  { label: "Search", href: "/ai-assistant" },
 ];
 
 export default function Header() {
@@ -155,6 +156,20 @@ export default function Header() {
             English
           </button>
 
+
+          <a
+            href="/ai-assistant"
+            className="
+              rounded-xl
+              px-4
+              py-2.5
+              text-sm
+              font-medium
+              text-white
+            "
+          >
+            Search
+          </a>
 
           {/* ================= SIGN IN ================= */}
 

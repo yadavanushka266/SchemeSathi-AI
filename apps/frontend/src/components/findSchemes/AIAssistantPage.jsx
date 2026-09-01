@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import Header from "../layout/Header";
 import { Footer } from "../layout";
 
+import { FaMicrophone } from "react-icons/fa";
+
 export default function AIAssistantPage() {
   const [message, setMessage] = useState("");
 
@@ -373,14 +375,13 @@ export default function AIAssistantPage() {
                     focus:ring-[#0d2b55]/10
                   "
                 />
-
-                <div className="mt-5 flex justify-center">
-
-        <button
+                <button
           type="button"
           onClick={openVoiceAssistant}
           title="Open Voice Assistant"
           className="
+            w-11.25
+            h-11.25
              rounded-border-lg
             border-[#d7aa2d]
             bg-white
@@ -389,21 +390,13 @@ export default function AIAssistantPage() {
             text-[12px]
             font-semibold
             text-[#0d2b55]
-            shadow-sm
-            transition-all
-            duration-200
-            hover:bg-[#0d2b55]
-            hover:text-white
-            hover:shadow-md
-            active:scale-95
           "
         >
-          🎤
+          <FaMicrophone />
         </button>
 
-                {/* SEND BUTTON */}
-
-                <button
+                        {/* SEND BUTTON */}
+                  <button
                   type="button"
                   onClick={handleSend}
                   className="
@@ -426,14 +419,9 @@ export default function AIAssistantPage() {
                   ➤
                 </button>
 
-              </div>
-
             </div>
 
           </div>
-
-
-
 
         </main>
 

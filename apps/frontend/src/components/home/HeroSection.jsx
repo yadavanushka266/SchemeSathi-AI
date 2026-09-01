@@ -1,4 +1,5 @@
 import React from "react";
+import logo from "../logos.png";
 
 const orbitItems = [
   { label: "Subsidies", className: "right-0 top-[20px]" },
@@ -9,7 +10,7 @@ const orbitItems = [
 
 export default function HeroSection() {
   return (
-    <section className="overflow-hidden bg-[#0d2b55]">
+    <section className="overflow-hidden bg-[hsl(215,73%,19%)]">
       <div className="mx-auto grid min-h-98.5 max-w-7xl items-center gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-10">
         {/* Left content */}
         <div className="relative z-10 max-w-152.5">
@@ -55,8 +56,8 @@ export default function HeroSection() {
           <div className="absolute left-1/2 top-1/2 h-33.75 w-33.75 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-400/30" />
 
           {/* Center logo */}
-          <div className="absolute left-1/2 top-1/2 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#d7aa2d] bg-[#e2ad22] shadow-[0_0_0_8px_rgba(226,173,34,0.08)]">
-            <span className="text-[42px] font-extrabold text-[#0d2b55]">S</span>
+          <div className="absolute left-1/2 top-1/2 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full ">
+           <img src={logo} alt="Logo" className="h-22 w-auto" />
           </div>
 
           {/* Orbit labels */}
