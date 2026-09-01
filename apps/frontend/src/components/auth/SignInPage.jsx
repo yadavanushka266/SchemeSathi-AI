@@ -6,6 +6,7 @@ export default function SignInPage() {
 
   const [formData, setFormData] = useState({
     email: "",
+    mobile: "",
     password: "",
   });
 
@@ -56,7 +57,8 @@ export default function SignInPage() {
 
 
       if (
-        user.email === formData.email
+        (user.email === formData.email || user.mobile === formData.mobile)
+        && user.password === formData.password
       ) {
 
         localStorage.setItem(
@@ -109,7 +111,7 @@ export default function SignInPage() {
           <div className="mb-5">
 
             <label
-              htmlFor="email"
+              htmlFor="email/mobile"
               className="
                 mb-2
                 block
@@ -118,16 +120,16 @@ export default function SignInPage() {
                 text-slate-700
               "
             >
-              Email Address
+              Email /Mobile Number
             </label>
 
 
             <input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="Enter email address"
-              value={formData.email}
+              id="email/mobile"
+              name="email/mobile"
+              type="email/tel"
+              placeholder="Enter email/number"
+              value={formData.email/mobile}
               onChange={handleChange}
               required
               className="
