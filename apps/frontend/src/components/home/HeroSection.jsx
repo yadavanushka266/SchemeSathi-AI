@@ -10,7 +10,7 @@ const orbitItems = [
 
 export default function HeroSection() {
   return (
-    <section className="overflow-hidden bg-[hsl(215,73%,19%)]">
+    <section className="overflow-hidden bg-[hsl(221,72%,18%)]">
       <div className="mx-auto grid min-h-98.5 max-w-7xl items-center gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-10">
         {/* Left content */}
         <div className="relative z-10 max-w-152.5">
