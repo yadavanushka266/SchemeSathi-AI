@@ -1,33 +1,21 @@
 import React from "react";
 import ProgressSteps from "./ProgressSteps";
 import { MainLayout } from "../layout";
+import { getUserItem } from "../../lib/userStorage";
+import { useLanguage } from "../../lib/i18n.jsx";
 
 
 function getData(key) {
-  try {
-    const saved = localStorage.getItem(key);
-
-    if (!saved) {
-      return {};
-    }
-
-    const parsed = JSON.parse(saved);
-
-    return parsed && typeof parsed === "object"
-      ? parsed
-      : {};
-  } catch (error) {
-    console.error(`Unable to load ${key}:`, error);
-    return {};
-  }
+  return getUserItem(key) || {};
 }
 
 /* ====== REVIEW PAGE ===== */
 
 export default function ReviewPage() {
+  const { t } = useLanguage();
 
   const personal = getData(
-    "schemeSaathiPersonalInfo"
+    "schemeSaathiPersonalDetails"
   );
 
   const business = getData(
@@ -129,7 +117,7 @@ export default function ReviewPage() {
                 text-[#172b49]
               "
             >
-              Review your information
+              {t("review_title")}
             </h1>
 
             <p
@@ -161,6 +149,11 @@ export default function ReviewPage() {
                   [
                     "Name",
                     personal.fullName ||
+                      "Not provided",
+                  ],
+                  [
+                    "Mobile Number",
+                    personal.phoneNumber ||
                       "Not provided",
                   ],
                   [
@@ -321,7 +314,7 @@ export default function ReviewPage() {
                 sm:w-37.5
               "
             >
-              ← Back
+              ← {t("common_back")}
             </button>
 
             {/* ====== FIND SCHEMES ====== */}
@@ -345,7 +338,7 @@ export default function ReviewPage() {
                 sm:w-65
               "
             >
-              Find Matching Schemes →
+              {t("review_find_matches")} →
             </button>
 
           </div>
@@ -417,7 +410,7 @@ function ReviewCard({
             hover:bg-slate-50
           "
         >
-          Edit
+          {t("common_edit")}
         </button>
 
       </div>

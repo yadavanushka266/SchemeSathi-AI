@@ -20,6 +20,7 @@ from src.modules.facilitators.router import router as facilitators_router
 from src.modules.matching.router import router as matching_router
 from src.modules.notifications.router import router as notifications_router
 from src.modules.outreach.router import router as outreach_router
+from src.modules.public.router import router as public_router
 from src.modules.readiness.router import router as readiness_router
 from src.modules.schemes.router import router as schemes_router
 from src.modules.users.router import router as users_router
@@ -78,6 +79,7 @@ app.include_router(facilitators_router, prefix=api_router_prefix)
 app.include_router(analytics_router, prefix=api_router_prefix)
 app.include_router(documents_router, prefix=api_router_prefix)
 app.include_router(notifications_router, prefix=api_router_prefix)
+app.include_router(public_router, prefix=api_router_prefix)
 
 
 @app.get("/health", tags=["Health"])

@@ -9,6 +9,18 @@ class MissedCallWebhook(BaseModel):
     provider_call_sid: str
 
 
+class AudioTurnRequest(BaseModel):
+    audio_base64: str
+    language: str = "hi"
+
+
+class AudioTurnResult(BaseModel):
+    beneficiary_transcript: str
+    prompt_text: str
+    prompt_audio_base64: str
+    conversation_complete: bool
+
+
 class CallSessionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID

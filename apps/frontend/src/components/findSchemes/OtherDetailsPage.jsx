@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useLanguage } from "../../lib/i18n.jsx";
 import ProgressSteps from "./ProgressSteps";
 import WhyAskCard from "./WhyAskCard";
 import { MainLayout } from "../layout";
+import { getUserItem, setUserItem } from "../../lib/userStorage";
 
 const initialForm = {
   annualIncome: "",
@@ -34,10 +36,7 @@ const supportOptions = [
   "Loan",
   "Subsidy",
   "Grant",
-  "Loan / Subsidy",
-  "Loan / Grant",
-  "Subsidy / Grant",
-  "Loan / Subsidy / Grant",
+  "Not sure yet",
 ];
 
 const schemeTypeOptions = [
@@ -52,34 +51,19 @@ const schemeTypeOptions = [
 ];
 
 function loadOtherData() {
-  try {
-    const saved = localStorage.getItem("schemeSaathiOtherDetails");
-
-    if (!saved) return { ...initialForm };
-
-    return {
-      ...initialForm,
-      ...JSON.parse(saved),
-    };
-  } catch (error) {
-    console.error(error);
-    return { ...initialForm };
-  }
+  const saved = getUserItem("schemeSaathiOtherDetails");
+  return saved ? { ...initialForm, ...saved } : { ...initialForm };
 }
 
 export default function OtherDetailsPage() {
+  const { t } = useLanguage();
   const editMode =
     sessionStorage.getItem("schemeSaathiEditMode");
 
   const isEditMode = editMode === "other";
 
-  const [form, setForm] = useState(() => {
-    if (isEditMode) {
-      return loadOtherData();
-    }
-
-    return { ...initialForm };
-  });
+  // Always start from this account's saved answers, if any.
+  const [form, setForm] = useState(loadOtherData);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -105,10 +89,7 @@ export default function OtherDetailsPage() {
       return;
     }
 
-    localStorage.setItem(
-      "schemeSaathiOtherDetails",
-      JSON.stringify(form)
-    );
+    setUserItem("schemeSaathiOtherDetails", form);
 
     sessionStorage.removeItem("schemeSaathiEditMode");
 
@@ -215,7 +196,7 @@ export default function OtherDetailsPage() {
               onClick={handleBack}
               className="h-11 w-full rounded-lg border border-slate-200 bg-white px-8 text-[13px] font-medium text-[#0d2b55] hover:bg-slate-50 sm:w-37.5"
             >
-              ← Back
+              ← {t("common_back")}
             </button>
 
             <button
@@ -223,7 +204,7 @@ export default function OtherDetailsPage() {
               form="other-form"
               className="h-11 w-full rounded-lg bg-[#0d2b55] px-8 text-[13px] font-medium text-white shadow-sm transition hover:bg-[#173b70] sm:w-58"
             >
-              Continue →
+              {t("common_continue")} →
             </button>
           </div>
         </div>

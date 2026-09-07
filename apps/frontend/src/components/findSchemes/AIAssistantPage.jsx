@@ -1,36 +1,96 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Header from "../layout/Header";
 import { Footer } from "../layout";
+import { sendAssistantMessage } from "../../lib/api";
+import { useLanguage } from "../../lib/i18n.jsx";
 
 import { FaMicrophone } from "react-icons/fa";
 
+const STORAGE_KEY = "schemeSaathiAssistantHistory";
+
+function loadHistory() {
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getPhoneNumber() {
+  try {
+    const saved = localStorage.getItem("schemeSaathiPersonalDetails");
+    return saved ? JSON.parse(saved)?.phoneNumber : null;
+  } catch {
+    return null;
+  }
+}
+
+const WELCOME_MESSAGE = {
+  role: "assistant",
+  content:
+    "Hi! I'm the AI Scheme Assistant. Ask me about any government scheme, what documents you need, or how to apply -- in your own words.",
+};
+
+const suggestedQuestions = [
+  "Tell me about PMEGP",
+  "How to apply for Stand-Up India?",
+  "More schemes for handicrafts",
+];
+
 export default function AIAssistantPage() {
+  const { t } = useLanguage();
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState(() => {
+    const saved = loadHistory();
+    return saved.length > 0 ? saved : [WELCOME_MESSAGE];
+  });
+  const [isSending, setIsSending] = useState(false);
+  const scrollRef = useRef(null);
 
-  const [conversations] = useState([
-    "Best loans for women entrepreneurs",
-    "Subsidies for rural manufacturing units",
-    "Schemes for SC category startups",
-    "Training programs in UP",
-  ]);
-
-  const suggestedQuestions = [
-    "Tell me about PMEGP",
-    "How to apply for Stand-Up India?",
-    "More schemes for handicrafts",
-  ];
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const openVoiceAssistant = () => {
     window.location.assign("/voice-assistant");
   };
 
-  const handleSend = () => {
-    if (!message.trim()) return;
+  const handleNewChat = () => {
+    setMessages([WELCOME_MESSAGE]);
+    sessionStorage.removeItem(STORAGE_KEY);
+  };
 
-    console.log("User message:", message);
+  const handleSend = async () => {
+    const text = message.trim();
+    if (!text || isSending) return;
 
-    // Later you can connect this with your AI/backend API
+    const nextMessages = [...messages, { role: "user", content: text }];
+    setMessages(nextMessages);
     setMessage("");
+    setIsSending(true);
+
+    try {
+      const history = nextMessages
+        .filter((m) => m !== WELCOME_MESSAGE)
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const result = await sendAssistantMessage(text, history, getPhoneNumber());
+
+      setMessages((current) => [...current, { role: "assistant", content: result.reply }]);
+    } catch (error) {
+      console.error("Assistant request failed:", error);
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: "Sorry, I couldn't reach the assistant right now. Please check your connection and try again.",
+        },
+      ]);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleSuggestion = (question) => {
@@ -85,7 +145,7 @@ export default function AIAssistantPage() {
 
             <button
               type="button"
-              onClick={() => setMessage("")}
+              onClick={handleNewChat}
               className="
                 flex
                 h-10.5
@@ -109,7 +169,7 @@ export default function AIAssistantPage() {
           </div>
 
 
-          {/* ================= RECENT CONVERSATIONS ================= */}
+          {/* ================= SUGGESTED QUESTIONS ================= */}
 
           <div className="px-7 pt-8">
 
@@ -121,16 +181,17 @@ export default function AIAssistantPage() {
                 text-[#e4b32e]
               "
             >
-              Recent Conversations
+              Try asking
             </p>
 
 
             <div className="mt-5 space-y-5">
 
-              {conversations.map((conversation, index) => (
+              {suggestedQuestions.map((question, index) => (
                 <button
                   key={index}
                   type="button"
+                  onClick={() => handleSuggestion(question)}
                   className="
                     block
                     w-full
@@ -142,16 +203,13 @@ export default function AIAssistantPage() {
                     hover:text-[#e4b32e]
                   "
                 >
-                  {conversation}
+                  {question}
                 </button>
               ))}
 
             </div>
 
           </div>
-
-
-
 
         </aside>
 
@@ -172,7 +230,7 @@ export default function AIAssistantPage() {
                 text-[#172b49]
               "
             >
-              AI Scheme Assistant
+              {t("assistant_title")}
             </h1>
 
             <p
@@ -188,236 +246,165 @@ export default function AIAssistantPage() {
           </div>
 
 
-          {/* ============= CHAT CONTENT ============= */}
+          {/* ============= CHAT MESSAGES ============= */}
 
           <div
             className="
               flex
               flex-1
               flex-col
-              overflow-hidden
+              overflow-y-auto
+              px-7
+              pt-4
+              sm:px-9
             "
-          />
+          >
 
-            <div
-              className="
-                flex
-                flex-1
-                flex-col
-                px-7
-                pt-4
-                sm:px-9
-              "
-            >
-
-              {/* ============ USER MESSAGE =========== */}
-
-              <div className="flex justify-end">
-
-                <div
-                  className="
-                    max-w-[65%]
-                    rounded-2xl
-                    bg-[#0d2b55]
-                    px-6
-                    py-3
-                    text-[11px]
-                    leading-5
-                    text-white
-                    shadow-sm
-                  "
-                >
-                  I am a woman entrepreneur from Lucknow,
-                  running a handicraft business. What schemes
-                  can help me?
-                </div>
-
-              </div>
-
-
-              {/* ============ AI RESPONSE =========== */}
-
-              <div className="mt-5">
-
-                <div
-                  className="
-                    max-w-[72%]
-                    rounded-2xl
-                    border
-                    border-slate-200
-                    bg-[#f8f9fc]
-                    px-6
-                    py-5
-                    shadow-sm
-                  "
-                >
-
-                  <p
+            {messages.map((entry, index) =>
+              entry.role === "user" ? (
+                <div key={index} className="flex justify-end">
+                  <div
                     className="
+                      mb-5
+                      max-w-[65%]
+                      rounded-2xl
+                      bg-[#0d2b55]
+                      px-6
+                      py-3
                       text-[11px]
                       leading-5
-                      text-slate-700
+                      text-white
+                      shadow-sm
                     "
                   >
-                    Based on your profile, here are the top
-                    schemes you may be eligible for:
-                  </p>
-
-
-                  <div className="mt-4 space-y-2.5">
-
-                    <p className="text-[11px] text-slate-700">
-                      <span className="font-medium">1.</span>{" "}
-                      Mahila Udyam Nidhi Scheme — Loan up to
-                      ₹10 Lakh
-                    </p>
-
-                    <p className="text-[11px] text-slate-700">
-                      <span className="font-medium">2.</span>{" "}
-                      PMEGP — Subsidy up to 35% for
-                      manufacturing & service units
-                    </p>
-
-                    <p className="text-[11px] text-slate-700">
-                      <span className="font-medium">3.</span>{" "}
-                      Stand-Up India — Loan between ₹10 Lakh
-                      to ₹1 Crore
-                    </p>
-
-                    <p className="text-[11px] text-slate-700">
-                      <span className="font-medium">4.</span>{" "}
-                      Udyam Registration Benefits — Access to
-                      multiple government benefits
-                    </p>
-
+                    {entry.content}
                   </div>
-
                 </div>
+              ) : (
+                <div key={index} className="mb-5">
+                  <div
+                    className="
+                      max-w-[72%]
+                      rounded-2xl
+                      border
+                      border-slate-200
+                      bg-[#f8f9fc]
+                      px-6
+                      py-5
+                      shadow-sm
+                    "
+                  >
+                    <p className="whitespace-pre-line text-[11px] leading-5 text-slate-700">
+                      {entry.content}
+                    </p>
+                  </div>
+                </div>
+              )
+            )}
 
+            {isSending && (
+              <div className="mb-5">
+                <div className="inline-block max-w-[72%] rounded-2xl border border-slate-200 bg-[#f8f9fc] px-6 py-4 shadow-sm">
+                  <p className="text-[11px] leading-5 text-slate-400">Thinking...</p>
+                </div>
               </div>
+            )}
+
+            <div ref={scrollRef} />
+
+          </div>
 
 
-              {/* ============= SUGGESTED QUESTIONS ============= */}
+          {/* ======= MESSAGE INPUT ======= */}
 
-              <div
+          <div
+            className="
+              px-7
+              pb-3
+              sm:px-9
+            "
+          >
+
+            <div className="flex items-center gap-5">
+
+              <input
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={t("assistant_placeholder")}
+                disabled={isSending}
                 className="
-                  mt-5
+                  h-11.25
+                  min-w-0
+                  flex-1
+                  rounded-xl
+                  border
+                  border-slate-200
+                  bg-white
+                  px-5
+                  text-[11px]
+                  text-slate-700
+                  outline-none
+                  transition
+                  placeholder:text-slate-400
+                  focus:border-[#0d2b55]
+                  focus:ring-2
+                  focus:ring-[#0d2b55]/10
+                  disabled:bg-slate-50
+                "
+              />
+
+              <button
+                type="button"
+                onClick={openVoiceAssistant}
+                title="Open Voice Assistant"
+                className="
                   flex
-                  flex-wrap
-                  gap-3
+                  h-11.25
+                  w-11.25
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-lg
+                  border
+                  border-[#d7aa2d]
+                  bg-white
+                  text-[12px]
+                  font-semibold
+                  text-[#0d2b55]
                 "
               >
+                <FaMicrophone />
+              </button>
 
-                {suggestedQuestions.map((question) => (
+              {/* SEND BUTTON */}
 
-                  <button
-                    key={question}
-                    type="button"
-                    onClick={() => handleSuggestion(question)}
-                    className="
-                      rounded-lg
-                      border
-                      border-[#d7aa2d]
-                      bg-white
-                      px-5
-                      py-2
-                      text-[10px]
-                      font-medium
-                      text-slate-700
-                      transition
-                      hover:bg-[#fff9df]
-                    "
-                  >
-                    {question}
-                  </button>
-
-                ))}
-
-              </div>
-
-            </div>
-
-
-            {/* ======= MESSAGE INPUT ======= */}
-
-            <div
-              className="
-                px-7
-                pb-3
-                sm:px-9
-              "
-            >
-
-              <div className="flex items-center gap-5">
-
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type your message..."
-                  className="
-                    h-11.25
-                    min-w-0
-                    flex-1
-                    rounded-xl
-                    border
-                    border-slate-200
-                    bg-white
-                    px-5
-                    text-[11px]
-                    text-slate-700
-                    outline-none
-                    transition
-                    placeholder:text-slate-400
-                    focus:border-[#0d2b55]
-                    focus:ring-2
-                    focus:ring-[#0d2b55]/10
-                  "
-                />
-                <button
-          type="button"
-          onClick={openVoiceAssistant}
-          title="Open Voice Assistant"
-          className="
-            w-11.25
-            h-11.25
-             rounded-border-lg
-            border-[#d7aa2d]
-            bg-white
-            px-5
-            py-2
-            text-[12px]
-            font-semibold
-            text-[#0d2b55]
-          "
-        >
-          <FaMicrophone />
-        </button>
-
-                        {/* SEND BUTTON */}
-                  <button
-                  type="button"
-                  onClick={handleSend}
-                  className="
-                    flex
-                    h-11.25
-                    w-11.25
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#e4b32e]
-                    text-[#0d2b55]
-                    shadow-sm
-                    transition
-                    hover:bg-[#d7aa2d]
-                    active:scale-95
-                  "
-                  aria-label="Send message"
-                >
-                  ➤
-                </button>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={isSending || !message.trim()}
+                className="
+                  flex
+                  h-11.25
+                  w-11.25
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#e4b32e]
+                  text-[#0d2b55]
+                  shadow-sm
+                  transition
+                  hover:bg-[#d7aa2d]
+                  active:scale-95
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+                aria-label="Send message"
+              >
+                ➤
+              </button>
 
             </div>
 

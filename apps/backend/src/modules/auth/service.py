@@ -42,8 +42,8 @@ async def refresh_access_token(db: AsyncSession, raw_refresh_token: str) -> Toke
         raise UnauthorizedException("User account is inactive or does not exist")
 
     stored_token.revoked = True
-    new_pair = await _issue_token_pair(db, user)
-    stored_token.replaced_by_hash = hash_token(new_pair.refresh_token)
+    new_pair, new_token_hash = await _issue_token_pair(db, user, return_hash=True)
+    stored_token.replaced_by_hash = new_token_hash
     await db.commit()
     return new_pair
 
@@ -63,9 +63,12 @@ async def revoke_refresh_token(db: AsyncSession, raw_refresh_token: str) -> None
         await db.commit()
 
 
-async def _issue_token_pair(db: AsyncSession, user: User) -> TokenResponse:
+async def _issue_token_pair(db: AsyncSession, user: User, return_hash: bool = False):
     access_token = create_access_token(subject=str(user.id), role=user.role.value)
     signed_refresh_token, refresh_hash, expires_at = create_refresh_token(subject=str(user.id))
     db.add(RefreshToken(user_id=user.id, token_hash=refresh_hash, expires_at=expires_at))
     await db.commit()
-    return TokenResponse(access_token=access_token, refresh_token=signed_refresh_token, user=user)
+    token_response = TokenResponse(access_token=access_token, refresh_token=signed_refresh_token, user=user)
+    if return_hash:
+        return token_response, refresh_hash
+    return token_response

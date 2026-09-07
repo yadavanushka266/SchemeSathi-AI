@@ -21,20 +21,49 @@ class Settings(BaseSettings):
 
     RATE_LIMIT_LOGIN: str = "5/minute"
     RATE_LIMIT_DEFAULT: str = "100/minute"
+    RATE_LIMIT_SELF_SERVICE: str = "10/minute"
 
     AI_PROVIDER_API_KEY: str = ""
     AI_PROVIDER_BASE_URL: str = "https://api.openai.com/v1"
+    AI_CHAT_MODEL: str = "gpt-4o-mini"
 
     TELEPHONY_PROVIDER: str = "exotel"
     TELEPHONY_API_KEY: str = ""
     TELEPHONY_API_SECRET: str = ""
     TELEPHONY_CALLBACK_NUMBER: str = ""
 
+    EXOTEL_SID: str = ""
+    EXOTEL_API_KEY: str = ""
+    EXOTEL_API_TOKEN: str = ""
+    EXOTEL_SUBDOMAIN: str = "api.exotel.com"
+    EXOTEL_CALLER_ID: str = ""
+    EXOTEL_APP_ID: str = ""
+
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_FROM_NUMBER: str = ""
+    TWILIO_VOICE_WEBHOOK_URL: str = ""
+
+    WEBHOOK_SHARED_SECRET: str = ""
+
     SMS_PROVIDER: str = "msg91"
     SMS_API_KEY: str = ""
+    MSG91_AUTH_KEY: str = ""
+    MSG91_SENDER_ID: str = "SCHMAT"
+    MSG91_TEMPLATE_ID: str = ""
 
     OCR_PROVIDER: str = "google_vision"
     OCR_API_KEY: str = ""
+    GOOGLE_VISION_API_KEY: str = ""
+
+    # Bhashini (Digital India Bhashini / ULCA-Dhruva) — real government NLP pipeline
+    # for ASR, translation and TTS across Indian languages.
+    VOICE_AI_PROVIDER: str = "bhashini"
+    BHASHINI_USER_ID: str = ""
+    BHASHINI_API_KEY: str = ""
+    BHASHINI_PIPELINE_ID: str = "64392f96daac500b55c543cd"
+    BHASHINI_CONFIG_ENDPOINT: str = "https://meity-auth.ulcacontrib.org/ulca/apis/v0/model/getModelsPipeline"
+    BHASHINI_DEFAULT_LANGUAGE: str = "hi"
 
     AWS_S3_BUCKET: str = ""
     AWS_ACCESS_KEY_ID: str = ""

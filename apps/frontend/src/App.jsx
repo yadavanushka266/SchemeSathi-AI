@@ -23,6 +23,8 @@ import CategoriesPage from "./components/categories/CategoriesPage";
 
 import ResourcesPage from "./components/resources/ResourcesPage";
 
+import ProfilePage from "./components/profile/ProfilePage";
+
 
 function getPath() {
   const path = window.location.pathname.replace(/\/+$/, "");
@@ -108,6 +110,10 @@ if (path === "/ai-assistant") {
 
 if( path === "/voice-assistant") {
   return <VoiceAssistantPage />;
+}
+
+if (path === "/profile") {
+  return <ProfilePage />;
 }
 
   return <HomePage />;

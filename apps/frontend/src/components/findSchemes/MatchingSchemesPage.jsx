@@ -1,300 +1,137 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "../../lib/i18n.jsx";
 import ProgressSteps from "./ProgressSteps";
 import { MainLayout } from "../layout";
+import { fetchMatchingSchemes } from "../../lib/api";
+import { getUserItem } from "../../lib/userStorage";
 
-/* ====== SAMPLE SCHEME DATA ====== */
+/* ====== LOCAL STORAGE HELPER (scoped to the signed-in account) ====== */
 
-const schemes = [
-  {
-    id: 1,
-    name: "Pradhan Mantri Mudra Yojana",
-    category: "Business Loan",
-    support: "Loan",
-    amount: "Up to ₹10 Lakh",
-    ministry: "Ministry of Finance",
-    description:
-      "Provides loans to small businesses and entrepreneurs for starting or expanding their business.",
-    eligibility:
-      "Small businesses, startups and micro enterprises.",
-    tags: ["Loan", "Business", "MSME"],
-  },
+function getLocalStorageData(key) {
+  return getUserItem(key);
+}
 
-  {
-    id: 2,
-    name: "Prime Minister's Employment Generation Programme",
-    category: "Financial Assistance",
-    support: "Subsidy",
-    amount: "Up to ₹25 Lakh",
-    ministry: "Ministry of MSME",
-    description:
-      "Supports entrepreneurs in setting up new micro-enterprises through financial assistance.",
-    eligibility:
-      "New entrepreneurs and eligible micro enterprises.",
-    tags: ["Subsidy", "MSME", "Entrepreneur"],
-  },
+/* ====== BUILD THE API PAYLOAD FROM THE WIZARD'S SAVED STEPS ====== */
 
-  {
-    id: 3,
-    name: "Credit Guarantee Scheme for MSMEs",
-    category: "Business Loan",
-    support: "Loan",
-    amount: "Credit Support",
-    ministry: "Ministry of MSME",
-    description:
-      "Provides credit guarantee support to eligible micro and small enterprises.",
-    eligibility:
-      "Micro and small enterprises seeking institutional credit.",
-    tags: ["Loan", "MSME", "Credit"],
-  },
-
-  {
-    id: 4,
-    name: "Stand-Up India",
-    category: "Business Loan",
-    support: "Loan",
-    amount: "₹10 Lakh - ₹1 Crore",
-    ministry: "Ministry of Finance",
-    description:
-      "Facilitates bank loans for setting up greenfield enterprises.",
-    eligibility:
-      "Eligible entrepreneurs establishing new enterprises.",
-    tags: ["Loan", "Startup", "Business"],
-  },
-
-  {
-    id: 5,
-    name: "Startup India Seed Fund Scheme",
-    category: "Grant",
-    support: "Grant",
-    amount: "Up to ₹50 Lakh",
-    ministry: "DPIIT",
-    description:
-      "Provides financial assistance to startups for proof of concept, prototype development and product trials.",
-    eligibility:
-      "Eligible startups recognised under Startup India.",
-    tags: ["Grant", "Startup", "Innovation"],
-  },
-
-  {
-    id: 6,
-    name: "Skill Development Support Scheme",
-    category: "Skill Development",
-    support: "Training",
-    amount: "Training Support",
-    ministry: "Government of India",
-    description:
-      "Provides training and skill development opportunities for entrepreneurs and workers.",
-    eligibility:
-      "Eligible individuals and businesses seeking skill development.",
-    tags: ["Training", "Skills", "Development"],
-  },
-];
+function buildProfilePayload(personal, business, other) {
+  return {
+    phone_number: personal?.phoneNumber || "",
+    full_name: personal?.fullName || "",
+    age: personal?.age ? Number(personal.age) : null,
+    gender: personal?.gender || null,
+    location: [personal?.district, personal?.state].filter(Boolean).join(", "),
+    social_category: personal?.category || null,
+    occupation: business?.businessActivity || null,
+    business_type: business?.businessType || null,
+    business_stage: business?.businessStage || null,
+    years_in_business: business?.yearsInBusiness || null,
+    annual_turnover: business?.annualTurnover || null,
+    number_of_employees: business?.numberOfEmployees || null,
+    annual_income: other?.annualIncome || null,
+    registered_business: other?.registeredBusiness || null,
+    funding_required: other?.fundingRequired || null,
+    preferred_support: other?.preferredSupport || null,
+    interested_scheme_type: other?.interestedSchemeType || null,
+  };
+}
 
 /* ====== COMPONENT ====== */
 
 export default function MatchingSchemesPage() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
+  const [matches, setMatches] = useState([]);
+  const [status, setStatus] = useState("loading"); // loading | ready | error | needs-profile
 
   /* ===== LOAD SAVED USER INFORMATION ======= */
 
-  const personalDetails = getLocalStorageData(
-    "schemeSaathiPersonalInfo"
-  );
+  const personalDetails = getLocalStorageData("schemeSaathiPersonalDetails");
+  const businessDetails = getLocalStorageData("schemeSaathiBusinessDetails");
+  const otherDetails = getLocalStorageData("schemeSaathiOtherDetails");
 
-  const businessDetails = getLocalStorageData(
-    "schemeSaathiBusinessDetails"
-  );
+  /* ===== FETCH REAL MATCHES FROM THE AI MATCHING ENGINE ======= */
 
-  const otherDetails = getLocalStorageData(
-    "schemeSaathiOtherDetails"
-  );
+  useEffect(() => {
+    let cancelled = false;
 
-  /* ======= PROFILE MATCHING ======= */
+    async function loadMatches() {
+      // Reached here via "Explore" on Categories or "Confirm & Find" on the
+      // Voice Assistant -- neither collects a phone number, which the
+      // matching engine needs as the beneficiary's identity. Send them to
+      // the wizard instead of showing a confusing error.
+      if (!personalDetails?.phoneNumber) {
+        setStatus("needs-profile");
+        return;
+      }
 
-  const matchedSchemes = useMemo(() => {
-    const interestedType =
-      otherDetails?.interestedSchemeType || "";
+      setStatus("loading");
 
-    const preferredSupport =
-      otherDetails?.preferredSupport || "";
+      try {
+        const payload = buildProfilePayload(personalDetails, businessDetails, otherDetails);
+        const result = await fetchMatchingSchemes(payload);
 
-    const businessType =
-      businessDetails?.businessType || "";
-
-    const businessStage =
-      businessDetails?.businessStage || "";
-
-    return schemes
-      .map((scheme) => {
-        let score = 0;
-
-        /* -------- INTERESTED SCHEME TYPE ------- */
-
-        if (interestedType) {
-          const interestedText =
-            interestedType.toLowerCase();
-
-          if (
-            scheme.category
-              .toLowerCase()
-              .includes(interestedText) ||
-            scheme.tags.some((tag) =>
-              tag
-                .toLowerCase()
-                .includes(interestedText)
-            )
-          ) {
-            score += 5;
-          }
+        if (!cancelled) {
+          setMatches(result.matches || []);
+          setStatus("ready");
         }
+      } catch (error) {
+        console.error("Unable to fetch matching schemes:", error);
+        if (!cancelled) setStatus("error");
+      }
+    }
 
-        /* ------ PREFERRED SUPPORT ------ */
+    loadMatches();
 
-        if (preferredSupport) {
-          const supportText =
-            preferredSupport.toLowerCase();
-
-          if (
-            scheme.support
-              .toLowerCase()
-              .includes(supportText) ||
-            scheme.tags.some((tag) =>
-              tag
-                .toLowerCase()
-                .includes(supportText)
-            )
-          ) {
-            score += 4;
-          }
-        }
-
-        /* --------- BUSINESS TYPE -------- */
-
-        if (businessType) {
-          const businessText =
-            businessType.toLowerCase();
-
-          if (
-            scheme.tags.some((tag) =>
-              tag
-                .toLowerCase()
-                .includes(businessText)
-            ) ||
-            scheme.category
-              .toLowerCase()
-              .includes(businessText)
-          ) {
-            score += 2;
-          }
-        }
-
-        /* ---- BUSINESS STAGE ------- */
-
-        if (businessStage) {
-          const stageText =
-            businessStage.toLowerCase();
-
-          if (
-            scheme.tags.some((tag) =>
-              tag
-                .toLowerCase()
-                .includes(stageText)
-            ) ||
-            scheme.description
-              .toLowerCase()
-              .includes(stageText)
-          ) {
-            score += 2;
-          }
-        }
-
-        return {
-          ...scheme,
-          matchScore: score,
-        };
-      })
-      .sort(
-        (a, b) =>
-          b.matchScore - a.matchScore
-      );
-  }, [businessDetails, otherDetails]);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ====== SEARCH ======== */
 
   const filteredSchemes = useMemo(() => {
-    const searchText =
-      search.trim().toLowerCase();
+    const searchText = search.trim().toLowerCase();
 
-    if (!searchText) {
-      return matchedSchemes;
-    }
+    if (!searchText) return matches;
 
-    return matchedSchemes.filter((scheme) => {
+    return matches.filter((scheme) => {
       return (
-        scheme.name
-          .toLowerCase()
-          .includes(searchText) ||
-
-        scheme.category
-          .toLowerCase()
-          .includes(searchText) ||
-
-        scheme.description
-          .toLowerCase()
-          .includes(searchText) ||
-
-        scheme.ministry
-          .toLowerCase()
-          .includes(searchText) ||
-
-        scheme.support
-          .toLowerCase()
-          .includes(searchText) ||
-
-        scheme.tags.some((tag) =>
-          tag
-            .toLowerCase()
-            .includes(searchText)
-        )
+        scheme.name.toLowerCase().includes(searchText) ||
+        scheme.department.toLowerCase().includes(searchText) ||
+        scheme.description.toLowerCase().includes(searchText) ||
+        scheme.benefits.toLowerCase().includes(searchText)
       );
     });
-  }, [matchedSchemes, search]);
+  }, [matches, search]);
 
   /* ======= VIEW SCHEME ========= */
 
   const handleViewScheme = (scheme) => {
-    localStorage.setItem(
-      "schemeSaathiSelectedScheme",
-      JSON.stringify(scheme)
-    );
-
-    window.location.href =
-      `/find-schemes/scheme/${scheme.id}`;
+    if (scheme.official_source_url) {
+      window.open(scheme.official_source_url, "_blank", "noopener,noreferrer");
+    } else {
+      alert("An official source link isn't available for this scheme yet.");
+    }
   };
 
   /* ======== EDIT PROFILE ====== */
 
   const handleEdit = (section) => {
-    sessionStorage.setItem(
-      "schemeSaathiEditMode",
-      section
-    );
+    sessionStorage.setItem("schemeSaathiEditMode", section);
 
     if (section === "personal") {
-      window.location.href =
-        "/find-schemes/personal-info";
+      window.location.href = "/find-schemes/personal-info";
       return;
     }
 
     if (section === "business") {
-      window.location.href =
-        "/find-schemes/business-details";
+      window.location.href = "/find-schemes/business-details";
       return;
     }
 
     if (section === "other") {
-      window.location.href =
-        "/find-schemes/other-details";
+      window.location.href = "/find-schemes/other-details";
     }
   };
 
@@ -302,235 +139,140 @@ export default function MatchingSchemesPage() {
 
   return (
     <MainLayout>
-
       <div className="min-h-[calc(100vh-132px)] bg-[#f7f8fc] pb-20">
-
         {/* ====== PROGRESS ======= */}
 
         <ProgressSteps currentStep={5} />
 
         <div className="mx-auto max-w-300 px-5 sm:px-8">
-
           {/* ====== HEADER ========= */}
 
           <div className="pt-9">
-
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-
               <div>
-
                 <div className="mb-2 inline-flex items-center rounded-full bg-[#fff4c7] px-3 py-1 text-[11px] font-semibold text-[#9b7815]">
                   Step 5 • Results
                 </div>
 
                 <h1 className="text-[28px] font-extrabold tracking-[-0.02em] text-[#172b49]">
-                  Schemes matched for you
+                  {t("results_title")}
                 </h1>
 
                 <p className="mt-2 max-w-170 text-[14px] leading-6 text-slate-500">
-                  Based on the information you provided,
-                  we found government schemes that may
-                  be relevant to your needs.
+                  {t("results_subtitle")}
                 </p>
-
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
-
-                <p className="text-[11px] font-medium text-slate-400">
-                  MATCHED SCHEMES
-                </p>
-
+                <p className="text-[11px] font-medium text-slate-400">MATCHED SCHEMES</p>
                 <p className="mt-1 text-2xl font-extrabold text-[#0d2b55]">
-                  {filteredSchemes.length}
+                  {status === "ready" ? filteredSchemes.length : "–"}
                 </p>
-
               </div>
-
             </div>
-
           </div>
 
           {/* ====== PROFILE SUMMARY ======== */}
 
-          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          {status !== "needs-profile" && (
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h2 className="text-[15px] font-bold text-[#172b49]">Your application profile</h2>
 
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-              <div>
-
-                <h2 className="text-[15px] font-bold text-[#172b49]">
-                  Your application profile
-                </h2>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-
-                  {personalDetails?.state && (
-                    <ProfileTag>
-                      {personalDetails.state}
-                    </ProfileTag>
-                  )}
-
-                  {personalDetails?.category && (
-                    <ProfileTag>
-                      {personalDetails.category}
-                    </ProfileTag>
-                  )}
-
-                  {businessDetails?.businessType && (
-                    <ProfileTag>
-                      {businessDetails.businessType}
-                    </ProfileTag>
-                  )}
-
-                  {businessDetails?.businessStage && (
-                    <ProfileTag>
-                      {businessDetails.businessStage}
-                    </ProfileTag>
-                  )}
-
-                  {otherDetails?.preferredSupport && (
-                    <ProfileTag>
-                      {otherDetails.preferredSupport}
-                    </ProfileTag>
-                  )}
-
-                  {otherDetails?.interestedSchemeType && (
-                    <ProfileTag>
-                      {otherDetails.interestedSchemeType}
-                    </ProfileTag>
-                  )}
-
-                  {!personalDetails &&
-                    !businessDetails &&
-                    !otherDetails && (
-                      <span className="text-[12px] text-slate-400">
-                        Profile information is not available.
-                      </span>
-                    )}
-
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {personalDetails?.state && <ProfileTag>{personalDetails.state}</ProfileTag>}
+                    {personalDetails?.category && <ProfileTag>{personalDetails.category}</ProfileTag>}
+                    {businessDetails?.businessType && <ProfileTag>{businessDetails.businessType}</ProfileTag>}
+                    {businessDetails?.businessStage && <ProfileTag>{businessDetails.businessStage}</ProfileTag>}
+                    {otherDetails?.preferredSupport && <ProfileTag>{otherDetails.preferredSupport}</ProfileTag>}
+                    {otherDetails?.interestedSchemeType && <ProfileTag>{otherDetails.interestedSchemeType}</ProfileTag>}
+                  </div>
                 </div>
 
+                {/* EDIT BUTTONS */}
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit("personal")}
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-[12px] font-medium text-[#0d2b55] transition hover:bg-slate-50"
+                  >
+                    Personal
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleEdit("business")}
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-[12px] font-medium text-[#0d2b55] transition hover:bg-slate-50"
+                  >
+                    Business
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleEdit("other")}
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-[12px] font-medium text-[#0d2b55] transition hover:bg-slate-50"
+                  >
+                    Other
+                  </button>
+                </div>
               </div>
-
-              {/* EDIT BUTTONS */}
-
-              <div className="flex flex-wrap gap-2">
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleEdit("personal")
-                  }
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-[12px] font-medium text-[#0d2b55] transition hover:bg-slate-50"
-                >
-                  Personal
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleEdit("business")
-                  }
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-[12px] font-medium text-[#0d2b55] transition hover:bg-slate-50"
-                >
-                  Business
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleEdit("other")
-                  }
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-[12px] font-medium text-[#0d2b55] transition hover:bg-slate-50"
-                >
-                  Other
-                </button>
-
-              </div>
-
-            </div>
-
-          </section>
+            </section>
+          )}
 
           {/* ====== SEARCH ONLY ======== */}
 
-          <section className="mt-6">
+          {status === "ready" && (
+            <section className="mt-6">
+              <div className="relative w-full">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
 
-            <div className="relative w-full">
-
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                ⌕
-              </span>
-
-              <input
-                type="text"
-                value={search}
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
-                placeholder="Search schemes..."
-                className="
-                  h-11
-                  w-full
-                  rounded-xl
-                  border
-                  border-slate-200
-                  bg-white
-                  pl-10
-                  pr-4
-                  text-[13px]
-                  text-slate-700
-                  outline-none
-                  transition
-                  focus:border-[#0d2b55]
-                  focus:ring-2
-                  focus:ring-[#0d2b55]/10
-                "
-              />
-
-            </div>
-
-          </section>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search schemes..."
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-[13px] text-slate-700 outline-none transition focus:border-[#0d2b55] focus:ring-2 focus:ring-[#0d2b55]/10"
+                />
+              </div>
+            </section>
+          )}
 
           {/* ====== RESULTS ======== */}
 
           <div className="mt-6">
-
-            {filteredSchemes.length === 0 ? (
-
-              <EmptyResults
-                onReset={() => {
-                  setSearch("");
-                }}
+            {status === "needs-profile" && (
+              <StatusMessage
+                title="Let's get a few details first"
+                body="To find schemes matched to you, we need your basic profile. It only takes a couple of minutes."
+                action={{ label: "Start Profile", href: "/find-schemes/personal-info" }}
               />
-
-            ) : (
-
-              <div className="grid gap-5 md:grid-cols-2">
-
-                {filteredSchemes.map((scheme) => (
-
-                  <SchemeCard
-                    key={scheme.id}
-                    scheme={scheme}
-                    onView={() =>
-                      handleViewScheme(scheme)
-                    }
-                  />
-
-                ))}
-
-              </div>
-
             )}
 
+            {status === "loading" && <StatusMessage title="Checking your eligibility..." body="This takes a few seconds while we run every scheme's rules against your profile." />}
+
+            {status === "error" && (
+              <StatusMessage
+                title="We couldn't fetch your matches"
+                body="Please check your internet connection and try again. If the problem continues, please try again in a few minutes."
+              />
+            )}
+
+            {status === "ready" && filteredSchemes.length === 0 && (
+              <EmptyResults onReset={() => setSearch("")} />
+            )}
+
+            {status === "ready" && filteredSchemes.length > 0 && (
+              <div className="grid gap-5 md:grid-cols-2">
+                {filteredSchemes.map((scheme) => (
+                  <SchemeCard key={scheme.scheme_id} scheme={scheme} onView={() => handleViewScheme(scheme)} />
+                ))}
+              </div>
+            )}
           </div>
-
         </div>
-
       </div>
-
     </MainLayout>
   );
 }
@@ -538,113 +280,62 @@ export default function MatchingSchemesPage() {
 /* ====== SCHEME CARD ====== */
 
 function SchemeCard({ scheme, onView }) {
-
   return (
-    <article
-      className="
-        rounded-2xl
-        border
-        border-slate-200
-        bg-white
-        p-5
-        shadow-sm
-        transition
-        hover:-translate-y-0.5
-        hover:shadow-md
-      "
-    >
-
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       {/* TOP */}
 
       <div className="flex items-start justify-between gap-4">
-
         <div className="flex items-start gap-3">
-
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0d2b55] text-lg font-bold text-[#f4c63d]">
             ₹
           </div>
 
           <div>
-
-            <h2 className="text-[16px] font-bold leading-5 text-[#172b49]">
-              {scheme.name}
-            </h2>
-
-            <p className="mt-1 text-[11px] text-slate-400">
-              {scheme.ministry}
-            </p>
-
+            <h2 className="text-[16px] font-bold leading-5 text-[#172b49]">{scheme.name}</h2>
+            <p className="mt-1 text-[11px] text-slate-400">{scheme.department}</p>
           </div>
-
         </div>
 
         <span className="rounded-full bg-[#fff5c9] px-2.5 py-1 text-[10px] font-semibold text-[#8c6b00]">
-          {scheme.support}
+          {Math.round(scheme.score * 100)}% match
         </span>
-
       </div>
 
       {/* DESCRIPTION */}
 
-      <p className="mt-4 text-[12px] leading-5 text-slate-500">
-        {scheme.description}
-      </p>
+      <p className="mt-4 text-[12px] leading-5 text-slate-500">{scheme.description}</p>
 
-      {/* AMOUNT */}
+      {/* BENEFITS */}
 
       <div className="mt-4 rounded-xl bg-slate-50 p-3">
-
-        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-          Financial Support
-        </p>
-
-        <p className="mt-1 text-[14px] font-bold text-[#172b49]">
-          {scheme.amount}
-        </p>
-
+        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Benefits</p>
+        <p className="mt-1 text-[14px] font-bold text-[#172b49]">{scheme.benefits}</p>
       </div>
 
-      {/* TAGS */}
+      {/* REQUIRED DOCUMENTS */}
 
-      <div className="mt-4 flex flex-wrap gap-2">
-
-        {scheme.tags.map((tag) => (
-          <span
-            key={tag}
-            className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600"
-          >
-            {tag}
-          </span>
-        ))}
-
-      </div>
-
-      {/* MATCH */}
-
-      {scheme.matchScore > 0 && (
-
-        <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2">
-
-          <p className="text-[11px] font-semibold text-emerald-700">
-            ✓ Matches your profile
-          </p>
-
+      {scheme.required_documents?.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {scheme.required_documents.map((doc) => (
+            <span key={doc} className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">
+              {doc}
+            </span>
+          ))}
         </div>
-
       )}
 
-      {/* ELIGIBILITY */}
+      {/* WHY THIS MATCHED -- the explainability the SIH brief asks for */}
+
+      <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2">
+        <p className="text-[11px] font-semibold text-emerald-700">✓ Why this matched</p>
+        <p className="mt-1 text-[11px] leading-5 text-emerald-800">{scheme.explanation}</p>
+      </div>
+
+      {/* APPLICATION ROUTE */}
 
       <div className="mt-4 border-t border-slate-100 pt-4">
-
-        <p className="text-[11px] font-semibold text-[#172b49]">
-          Eligibility
-        </p>
-
-        <p className="mt-1 text-[11px] leading-5 text-slate-500">
-          {scheme.eligibility}
-        </p>
-
+        <p className="text-[11px] font-semibold text-[#172b49]">How to apply</p>
+        <p className="mt-1 text-[11px] leading-5 text-slate-500">{scheme.application_route}</p>
       </div>
 
       {/* BUTTON */}
@@ -652,23 +343,10 @@ function SchemeCard({ scheme, onView }) {
       <button
         type="button"
         onClick={onView}
-        className="
-          mt-5
-          h-10
-          w-full
-          rounded-lg
-          bg-[#0d2b55]
-          text-[12px]
-          font-semibold
-          text-white
-          transition
-          hover:bg-[#173b70]
-          active:scale-[0.99]
-        "
+        className="mt-5 h-10 w-full rounded-lg bg-[#0d2b55] text-[12px] font-semibold text-white transition hover:bg-[#173b70] active:scale-[0.99]"
       >
-        View Scheme Details →
+        Visit Official Scheme Page ↗
       </button>
-
     </article>
   );
 }
@@ -676,32 +354,40 @@ function SchemeCard({ scheme, onView }) {
 /* ====== PROFILE TAG ====== */
 
 function ProfileTag({ children }) {
+  return <span className="rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-medium text-slate-600">{children}</span>;
+}
 
+/* ====== STATUS MESSAGE (loading / error / needs-profile) ====== */
+
+function StatusMessage({ title, body, action }) {
   return (
-    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-medium text-slate-600">
-      {children}
-    </span>
+    <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
+      <h2 className="mt-4 text-lg font-bold text-[#172b49]">{title}</h2>
+      <p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-slate-500">{body}</p>
+
+      {action && (
+        <a
+          href={action.href}
+          className="mt-5 inline-block rounded-lg bg-[#0d2b55] px-5 py-2.5 text-[12px] font-medium text-white hover:bg-[#173b70]"
+        >
+          {action.label} →
+        </a>
+      )}
+    </div>
   );
 }
 
 /* ====== EMPTY RESULTS ====== */
 
 function EmptyResults({ onReset }) {
-
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">🔎</div>
 
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">
-        🔎
-      </div>
-
-      <h2 className="mt-4 text-lg font-bold text-[#172b49]">
-        No schemes found
-      </h2>
+      <h2 className="mt-4 text-lg font-bold text-[#172b49]">No schemes found</h2>
 
       <p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-slate-500">
-        We couldn't find schemes matching your
-        search. Try another scheme name or keyword.
+        We couldn't find schemes matching your search. Try another keyword, or none of the current schemes may fit your profile yet.
       </p>
 
       <button
@@ -711,31 +397,6 @@ function EmptyResults({ onReset }) {
       >
         Clear Search
       </button>
-
     </div>
   );
-}
-
-/* ====== LOCAL STORAGE HELPER ====== */
-
-function getLocalStorageData(key) {
-
-  try {
-
-    const saved =
-      localStorage.getItem(key);
-
-    return saved
-      ? JSON.parse(saved)
-      : null;
-
-  } catch (error) {
-
-    console.error(
-      `Unable to read ${key}:`,
-      error
-    );
-
-    return null;
-  }
 }

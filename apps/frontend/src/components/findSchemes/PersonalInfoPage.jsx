@@ -2,11 +2,15 @@ import React, { useState } from "react";
 import ProgressSteps from "./ProgressSteps";
 import WhyAskCard from "./WhyAskCard";
 import { MainLayout } from "../layout";
+import { STATES, getDistrictsForState } from "../../lib/statesDistricts";
+import { getUserItem, setUserItem } from "../../lib/userStorage";
+import { useLanguage } from "../../lib/i18n.jsx";
 
 /* ====== INITIAL FORM ====== */
 
 const initialForm = {
   fullName: "",
+  phoneNumber: "",
   age: "",
   gender: "",
   category: "",
@@ -32,82 +36,54 @@ const categories = [
   "Other",
 ];
 
-const states = [
-  "Andhra Pradesh",
-  "Bihar",
-  "Delhi",
-  "Gujarat",
-  "Haryana",
-  "Jharkhand",
-  "Karnataka",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Rajasthan",
-  "Tamil Nadu",
-  "Uttar Pradesh",
-  "West Bengal",
-];
-
-const districts = [
-  "Agra",
-  "Ghaziabad",
-  "Gautam Buddha Nagar",
-  "Kanpur Nagar",
-  "Lucknow",
-  "Meerut",
-  "Varanasi",
-];
+const states = STATES;
 
 /* ====== LOCAL STORAGE KEY ====== */
 
+/* Base storage key -- actual reads/writes go through getUserItem/setUserItem
+   in userStorage.js, which namespace it per signed-in account. */
 const PERSONAL_STORAGE_KEY = "schemeSaathiPersonalDetails";
 
-/* ====== LOAD SAVED PERSONAL INFORMATION ====== */
+/* ====== LOAD SAVED PERSONAL INFORMATION (scoped to the signed-in account) ====== */
+
+function getLoggedInAccount() {
+  try {
+    const raw = localStorage.getItem("schemeSaathiUser");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 function getSavedPersonalInfo() {
-  try {
-    const saved = localStorage.getItem(PERSONAL_STORAGE_KEY);
+  const saved = getUserItem("schemeSaathiPersonalDetails");
 
-    if (!saved) {
-      return { ...initialForm };
-    }
-
-    const parsed = JSON.parse(saved);
-
-    return {
-      ...initialForm,
-      ...parsed,
-    };
-  } catch (error) {
-    console.error(
-      "Unable to load personal information:",
-      error
-    );
-
-    return { ...initialForm };
+  if (saved) {
+    return { ...initialForm, ...saved };
   }
+
+  // No wizard data saved yet for this account -- pre-fill what we already
+  // know from sign-up so the person doesn't retype their own name/number.
+  const account = getLoggedInAccount();
+  return {
+    ...initialForm,
+    fullName: account?.fullName || "",
+    phoneNumber: account?.mobile || "",
+  };
 }
 
 /* ====== PAGE ====== */
 
 export default function PersonalInfoPage() {
-  const editMode = sessionStorage.getItem(
-    "schemeSaathiEditMode"
-  );
+  const { t } = useLanguage();
+  const isEditMode =
+    sessionStorage.getItem("schemeSaathiEditMode") === "personal";
 
-  const isEditMode = editMode === "personal";
+  /* ====== FORM STATE ======
+     Always starts from whatever this account has already saved, so
+     revisiting the wizard never wipes out real answers. */
 
-  /* ====== FORM STATE ====== */
-
-  const [form, setForm] = useState(() => {
-    if (isEditMode) {
-      return getSavedPersonalInfo();
-    }
-
-    return {
-      ...initialForm,
-    };
-  });
+  const [form, setForm] = useState(getSavedPersonalInfo);
 
   /* ====== HANDLE CHANGE ====== */
 
@@ -117,6 +93,8 @@ export default function PersonalInfoPage() {
     setForm((previous) => ({
       ...previous,
       [name]: value,
+      // Changing state invalidates whatever district was picked for the old state.
+      ...(name === "state" ? { district: "" } : {}),
     }));
   };
 
@@ -125,6 +103,11 @@ export default function PersonalInfoPage() {
   const validateForm = () => {
     if (!form.fullName.trim()) {
       alert("Please enter your full name.");
+      return false;
+    }
+
+    if (!form.phoneNumber.trim() || !/^\d{10}$/.test(form.phoneNumber.trim())) {
+      alert("Please enter a valid 10-digit mobile number.");
       return false;
     }
 
@@ -176,10 +159,7 @@ export default function PersonalInfoPage() {
     sessionStorage.getItem("schemeSaathiEditMode") ===
     "personal";
 
-    localStorage.setItem(
-      PERSONAL_STORAGE_KEY,
-      JSON.stringify(form)
-    );
+    setUserItem("schemeSaathiPersonalDetails", form);
 
     sessionStorage.removeItem("schemeSaathiEditMode");
 
@@ -217,8 +197,8 @@ export default function PersonalInfoPage() {
           <div className="mt-9">
             <h1 className="text-[27px] font-extrabold tracking-[-0.02em] text-[#172b49]">
               {isEditMode
-                ? "Update your personal information"
-                : "Let’s start with some basic information"}
+                ? t("wizard_personal_edit_title")
+                : t("wizard_personal_title")}
             </h1>
 
             <p className="mt-2 text-[13px] text-slate-500">
@@ -251,6 +231,17 @@ export default function PersonalInfoPage() {
                     type="text"
                     placeholder="Enter your full name"
                     value={form.fullName}
+                    onChange={handleChange}
+                  />
+
+                  {/* MOBILE NUMBER */}
+
+                  <FormInput
+                    label="Mobile Number"
+                    name="phoneNumber"
+                    type="tel"
+                    placeholder="10-digit mobile number"
+                    value={form.phoneNumber}
                     onChange={handleChange}
                   />
 
@@ -300,15 +291,15 @@ export default function PersonalInfoPage() {
                     options={states}
                   />
 
-                  {/* DISTRICT */}
+                  {/* DISTRICT / CITY */}
 
-                  <FormSelect
-                    label="District"
+                  <FormComboBox
+                    label="District / City"
                     name="district"
-                    placeholder="Select District"
+                    placeholder={form.state ? "Select or type your district/city" : "Select a state first"}
                     value={form.district}
                     onChange={handleChange}
-                    options={districts}
+                    options={getDistrictsForState(form.state)}
                   />
 
                 </div>
@@ -333,7 +324,7 @@ export default function PersonalInfoPage() {
               onClick={handleBack}
               className="h-11 w-full rounded-lg border border-slate-200 bg-white px-8 text-[13px] font-medium text-[#0d2b55] transition hover:bg-slate-50 sm:w-37.5"
             >
-              ← Back
+              ← {t("common_back")}
             </button>
 
             {/* CONTINUE */}
@@ -343,7 +334,7 @@ export default function PersonalInfoPage() {
               form="personal-info-form"
               className="h-11 w-full rounded-lg bg-[#0d2b55] px-8 text-[13px] font-medium text-white shadow-sm transition hover:bg-[#173b70] active:scale-[0.99] sm:w-58"
             >
-              Continue →
+              {t("common_continue")} →
             </button>
 
           </div>
@@ -432,6 +423,48 @@ function FormSelect({
         ))}
 
       </select>
+
+    </label>
+  );
+}
+
+/* ====== COMBO BOX (dropdown suggestions + free text) ======
+   Used for district/city: shows every district for the selected state,
+   but never blocks typing a town/village/city that isn't in the list. */
+
+function FormComboBox({
+  label,
+  name,
+  placeholder,
+  value,
+  onChange,
+  options,
+}) {
+  const listId = `${name}-options`;
+
+  return (
+    <label className="block">
+
+      <span className="mb-2 block text-[13px] font-medium text-slate-700">
+        {label}
+      </span>
+
+      <input
+        list={listId}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        autoComplete="off"
+        required
+        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[13px] text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0d2b55] focus:ring-2 focus:ring-[#0d2b55]/10"
+      />
+
+      <datalist id={listId}>
+        {options.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
 
     </label>
   );

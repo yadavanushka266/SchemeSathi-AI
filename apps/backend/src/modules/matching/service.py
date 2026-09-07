@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.middlewares.error_handler import NotFoundException
 from src.modules.beneficiaries.repository import get_by_id as get_beneficiary_by_id
@@ -15,6 +15,10 @@ async def run_matching_for_beneficiary(db: AsyncSession, beneficiary_id: str) ->
     beneficiary = await get_beneficiary_by_id(db, beneficiary_id)
     if not beneficiary:
         raise NotFoundException("Beneficiary not found")
+
+    # Re-running matching (profile updated, new scheme added) replaces the
+    # previous potential matches rather than piling up duplicates.
+    await db.execute(delete(MatchResult).where(MatchResult.beneficiary_id == beneficiary.id, MatchResult.status == MatchStatus.POTENTIAL))
 
     profile = build_beneficiary_profile(beneficiary)
     versions = await list_all_current_versions(db)

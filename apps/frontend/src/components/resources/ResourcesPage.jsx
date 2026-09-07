@@ -7,6 +7,7 @@ const resources = [
   {
     id: 1,
     title: "How to Find the Right Government Scheme",
+    url: "https://www.myscheme.gov.in/",
     category: "Guides",
     icon: "📚",
     description:
@@ -17,6 +18,7 @@ const resources = [
   {
     id: 2,
     title: "How to Apply for a Government Scheme",
+    url: "https://www.myscheme.gov.in/",
     category: "Application",
     icon: "📝",
     description:
@@ -27,6 +29,7 @@ const resources = [
   {
     id: 3,
     title: "Documents Required for Scheme Applications",
+    url: "https://www.digilocker.gov.in/",
     category: "Documents",
     icon: "📄",
     description:
@@ -37,6 +40,7 @@ const resources = [
   {
     id: 4,
     title: "Frequently Asked Questions",
+    url: "https://www.myscheme.gov.in/",
     category: "FAQs",
     icon: "❓",
     description:
@@ -47,6 +51,7 @@ const resources = [
   {
     id: 5,
     title: "Tips to Improve Scheme Eligibility",
+    url: "https://www.myscheme.gov.in/",
     category: "Tips",
     icon: "💡",
     description:
@@ -57,6 +62,7 @@ const resources = [
   {
     id: 6,
     title: "Understanding Business Loans & Subsidies",
+    url: "https://www.jansamarth.in/",
     category: "Guides",
     icon: "💰",
     description:
@@ -67,6 +73,7 @@ const resources = [
   {
     id: 7,
     title: "MSME Registration Guide",
+    url: "https://udyamregistration.gov.in/",
     category: "Application",
     icon: "🏭",
     description:
@@ -77,6 +84,7 @@ const resources = [
   {
     id: 8,
     title: "Startup Support Resources",
+    url: "https://www.startupindia.gov.in/",
     category: "Guides",
     icon: "🚀",
     description:
@@ -87,6 +95,7 @@ const resources = [
   {
     id: 9,
     title: "Government Scheme Application Checklist",
+    url: "https://www.myscheme.gov.in/",
     category: "Documents",
     icon: "✅",
     description:
@@ -97,6 +106,7 @@ const resources = [
   {
     id: 10,
     title: "Avoid Common Application Mistakes",
+    url: "https://www.myscheme.gov.in/",
     category: "Tips",
     icon: "⚠️",
     description:
@@ -107,6 +117,7 @@ const resources = [
   {
     id: 11,
     title: "Scheme Eligibility Explained",
+    url: "https://www.myscheme.gov.in/",
     category: "FAQs",
     icon: "🔍",
     description:
@@ -117,6 +128,7 @@ const resources = [
   {
     id: 12,
     title: "Financial Assistance Explained",
+    url: "https://www.jansamarth.in/",
     category: "Guides",
     icon: "💳",
     description:
@@ -174,15 +186,17 @@ export default function ResourcesPage() {
   /* ====== OPEN RESOURCE ====== */
 
   const handleOpenResource = (resource) => {
-    
+
     localStorage.setItem(
       "schemeSaathiSelectedResource",
       JSON.stringify(resource)
     );
 
-    alert(
-      `"${resource.title}" resource selected.`
-    );
+    if (resource.url) {
+      window.open(resource.url, "_blank", "noopener,noreferrer");
+    } else {
+      alert(`No link is available yet for "${resource.title}".`);
+    }
   };
 
   return (

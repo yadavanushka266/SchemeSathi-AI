@@ -54,7 +54,6 @@ export default function SignUpPage() {
     if (
       !formData.fullName ||
       !formData.mobile ||
-      !formData.email ||
       !formData.password
     ) {
 
@@ -72,7 +71,9 @@ export default function SignUpPage() {
 
     const user = {
       fullName: formData.fullName,
-      "email/mobile": formData["email/mobile"],
+      mobile: formData.mobile,
+      email: formData.email,
+      password: formData.password,
     };
 
 
@@ -115,15 +116,28 @@ export default function SignUpPage() {
           />
 
 
-          {/* ================= EMAIL/MOBILE ================= */}
+          {/* ================= MOBILE NUMBER ================= */}
 
           <FormInput
-            label="Email /Mobile Number"
-            name="email/mobile"
-            type="email/tel"
-            placeholder="Enter email/mobile number"
-            value={formData["email/mobile"]}
+            label="Mobile Number"
+            name="mobile"
+            type="tel"
+            placeholder="Enter 10-digit mobile number"
+            value={formData.mobile}
             onChange={handleChange}
+          />
+
+
+          {/* ================= EMAIL (OPTIONAL) ================= */}
+
+          <FormInput
+            label="Email (optional)"
+            name="email"
+            type="email"
+            placeholder="Enter email address"
+            value={formData.email}
+            onChange={handleChange}
+            required={false}
           />
 
           {/* ================= PASSWORD ================= */}
@@ -254,6 +268,7 @@ function FormInput({
   placeholder,
   value,
   onChange,
+  required = true,
 }) {
 
   return (
@@ -281,7 +296,7 @@ function FormInput({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        required
+        required={required}
         className="
           h-11
           w-full

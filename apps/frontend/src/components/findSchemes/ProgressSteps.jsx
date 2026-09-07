@@ -5,6 +5,7 @@ const steps = [
   { number: 2, label: "Business Details" },
   { number: 3, label: "Other Details" },
   { number: 4, label: "Review" },
+  { number: 5, label: "Results" },
 ];
 
 export default function ProgressSteps({ currentStep = 1 }) {
@@ -33,7 +34,7 @@ export default function ProgressSteps({ currentStep = 1 }) {
           "
         />
 
-        <div className="relative grid grid-cols-4">
+        <div className="relative grid grid-cols-5">
 
           {steps.map((step) => {
 

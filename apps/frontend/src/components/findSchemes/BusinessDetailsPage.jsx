@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useLanguage } from "../../lib/i18n.jsx";
 import ProgressSteps from "./ProgressSteps";
 import WhyAskCard from "./WhyAskCard";
 import { MainLayout } from "../layout";
+import { getUserItem, setUserItem } from "../../lib/userStorage";
 
 const initialForm = {
   businessType: "",
@@ -56,34 +58,20 @@ const employeeOptions = [
 ];
 
 function loadBusinessData() {
-  try {
-    const saved = localStorage.getItem("schemeSaathiBusinessDetails");
-
-    if (!saved) return { ...initialForm };
-
-    return {
-      ...initialForm,
-      ...JSON.parse(saved),
-    };
-  } catch (error) {
-    console.error(error);
-    return { ...initialForm };
-  }
+  const saved = getUserItem("schemeSaathiBusinessDetails");
+  return saved ? { ...initialForm, ...saved } : { ...initialForm };
 }
 
 export default function BusinessDetailsPage() {
+  const { t } = useLanguage();
   const editMode =
     sessionStorage.getItem("schemeSaathiEditMode");
 
   const isEditMode = editMode === "business";
 
-  const [form, setForm] = useState(() => {
-    if (isEditMode) {
-      return loadBusinessData();
-    }
-
-    return { ...initialForm };
-  });
+  // Always start from this account's saved answers, if any -- revisiting
+  // the wizard should never show a blank form when data already exists.
+  const [form, setForm] = useState(loadBusinessData);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -109,10 +97,7 @@ export default function BusinessDetailsPage() {
       return;
     }
 
-    localStorage.setItem(
-      "schemeSaathiBusinessDetails",
-      JSON.stringify(form)
-    );
+    setUserItem("schemeSaathiBusinessDetails", form);
 
     const cameFromEdit = isEditMode;
 
@@ -224,7 +209,7 @@ export default function BusinessDetailsPage() {
               onClick={handleBack}
               className="h-11 w-full rounded-lg border border-slate-200 bg-white px-8 text-[13px] font-medium text-[#0d2b55] hover:bg-slate-50 sm:w-37.5"
             >
-              ← Back
+              ← {t("common_back")}
             </button>
 
             <button
@@ -232,7 +217,7 @@ export default function BusinessDetailsPage() {
               form="business-form"
               className="h-11 w-full rounded-lg bg-[#0d2b55] px-8 text-[13px] font-medium text-white shadow-sm transition hover:bg-[#173b70] sm:w-58"
             >
-              Continue →
+              {t("common_continue")} →
             </button>
           </div>
         </div>

@@ -1,17 +1,41 @@
 import React, { useState } from "react";
 import logo from "../logo.jpg";
+import { LANGUAGES, useLanguage } from "../../lib/i18n.jsx";
 
 const navItems = [
-  { label: "Home", href: "/" },
-  { label: "Find Schemes", href: "/find-schemes" },
-  { label: "Categories", href: "/categories" },
-  { label: "Resources", href: "/resources" },
-  { label: "About", href: "/about" },
-  { label: "Search", href: "/ai-assistant" },
+  { key: "nav_home", href: "/" },
+  { key: "nav_find_schemes", href: "/find-schemes" },
+  { key: "nav_categories", href: "/categories" },
+  { key: "nav_resources", href: "/resources" },
+  { key: "nav_about", href: "/about" },
+  { key: "nav_search", href: "/ai-assistant" },
 ];
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  const { language, setLanguage, t } = useLanguage();
+
+  // Reflects whether SignInPage's demo login flow has run.
+  const isLoggedIn = localStorage.getItem("schemeSaathiLoggedIn") === "true";
+  const loggedInUser = (() => {
+    try {
+      const saved = localStorage.getItem("schemeSaathiUser");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const handleSignOut = () => {
+    localStorage.removeItem("schemeSaathiLoggedIn");
+    window.location.href = "/";
+  };
+
+  const currentLanguageLabel = LANGUAGES.find((l) => l.code === language)?.label || "English";
+  const initials = (loggedInUser?.fullName || "?").trim().charAt(0).toUpperCase();
 
   // Get current URL
   const currentPath =
@@ -107,7 +131,7 @@ export default function Header() {
 
             return (
               <a
-                key={item.label}
+                key={item.key}
                 href={item.href}
                 className={`
                   whitespace-nowrap
@@ -122,7 +146,7 @@ export default function Header() {
                   }
                 `}
               >
-                {item.label}
+                {t(item.key)}
               </a>
             );
 
@@ -137,24 +161,74 @@ export default function Header() {
 
           {/* ================= LANGUAGE ================= */}
 
-          <button
-            type="button"
-            className="
-              hidden
-              rounded-xl
-              border
-              border-slate-200
-              bg-slate-50
-              px-4
-              py-2.5
-              text-sm
-              font-medium
-              text-slate-700
-              xl:block
-            "
-          >
-            English
-          </button>
+          <div className="relative hidden xl:block">
+
+            <button
+              type="button"
+              onClick={() => setLanguageMenuOpen((open) => !open)}
+              className="
+                rounded-xl
+                border
+                border-slate-200
+                bg-slate-50
+                px-4
+                py-2.5
+                text-sm
+                font-medium
+                text-slate-700
+                transition
+                hover:bg-slate-100
+              "
+            >
+              {currentLanguageLabel}
+            </button>
+
+            {languageMenuOpen && (
+              <div
+                className="
+                  absolute
+                  right-0
+                  mt-2
+                  w-48
+                  overflow-hidden
+                  rounded-xl
+                  border
+                  border-slate-200
+                  bg-white
+                  py-1
+                  shadow-lg
+                "
+              >
+                {LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => {
+                      setLanguage(lang.code);
+                      setLanguageMenuOpen(false);
+                    }}
+                    className={`
+                      block
+                      w-full
+                      px-4
+                      py-2.5
+                      text-left
+                      text-sm
+
+                      ${
+                        lang.code === language
+                          ? "bg-[#fff4c7] font-semibold text-[#0d2b55]"
+                          : "text-slate-700 hover:bg-slate-50"
+                      }
+                    `}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+          </div>
 
 
           <a
@@ -168,28 +242,99 @@ export default function Header() {
               text-white
             "
           >
-            Search
+            {t("nav_search")}
           </a>
 
-          {/* ================= SIGN IN ================= */}
+          {/* ================= SIGN IN / PROFILE ================= */}
 
-          <a
-            href="/signin"
-            className="
-              rounded-xl
-              bg-[#0d2b55]
-              px-4
-              py-2.5
-              text-sm
-              font-medium
-              text-white
-              transition
-              hover:bg-[#173b70]
-              sm:px-5
-            "
-          >
-            Sign in
-          </a>
+          {isLoggedIn ? (
+            <div className="relative">
+
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((open) => !open)}
+                aria-label="Open profile menu"
+                className="
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#0d2b55]
+                  text-sm
+                  font-semibold
+                  text-white
+                  transition
+                  hover:bg-[#173b70]
+                "
+              >
+                {initials}
+              </button>
+
+              {profileMenuOpen && (
+                <div
+                  className="
+                    absolute
+                    right-0
+                    mt-2
+                    w-52
+                    overflow-hidden
+                    rounded-xl
+                    border
+                    border-slate-200
+                    bg-white
+                    py-1
+                    shadow-lg
+                  "
+                >
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <p className="text-sm font-semibold text-[#172b49]">
+                      {loggedInUser?.fullName || "Signed in"}
+                    </p>
+                    {loggedInUser?.mobile && (
+                      <p className="mt-0.5 text-xs text-slate-400">{loggedInUser.mobile}</p>
+                    )}
+                  </div>
+
+                  <a
+                    href="/profile"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    {t("profile")}
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-slate-50"
+                  >
+                    {t("sign_out")}
+                  </button>
+                </div>
+              )}
+
+            </div>
+          ) : (
+            <a
+              href="/signin"
+              className="
+                rounded-xl
+                bg-[#0d2b55]
+                px-4
+                py-2.5
+                text-sm
+                font-medium
+                text-white
+                transition
+                hover:bg-[#173b70]
+                sm:px-5
+              "
+            >
+              {t("sign_in")}
+            </a>
+          )}
 
         </div>
 
@@ -219,7 +364,7 @@ export default function Header() {
 
                 return (
                   <a
-                    key={item.label}
+                    key={item.key}
                     href={item.href}
                     onClick={() => setMenuOpen(false)}
                     className={`
@@ -237,11 +382,43 @@ export default function Header() {
                       }
                     `}
                   >
-                    {item.label}
+                    {t(item.key)}
                   </a>
                 );
 
               })}
+
+              {/* Language picker, mobile */}
+
+              <div className="mt-2 border-t border-slate-100 pt-3">
+                <p className="px-4 pb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Language</p>
+
+                <div className="flex flex-wrap gap-2 px-4">
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => setLanguage(lang.code)}
+                      className={`
+                        rounded-lg
+                        border
+                        px-3
+                        py-1.5
+                        text-xs
+                        font-medium
+
+                        ${
+                          lang.code === language
+                            ? "border-[#0d2b55] bg-[#0d2b55] text-white"
+                            : "border-slate-200 text-slate-600"
+                        }
+                      `}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
             </div>
 

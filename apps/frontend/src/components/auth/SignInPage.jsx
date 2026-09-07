@@ -57,7 +57,7 @@ export default function SignInPage() {
 
 
       if (
-        (user.email === formData.email || user.mobile === formData.mobile)
+        (user.email === formData.email || user.mobile === formData.email)
         && user.password === formData.password
       ) {
 
@@ -111,7 +111,7 @@ export default function SignInPage() {
           <div className="mb-5">
 
             <label
-              htmlFor="email/mobile"
+              htmlFor="email"
               className="
                 mb-2
                 block
@@ -125,11 +125,11 @@ export default function SignInPage() {
 
 
             <input
-              id="email/mobile"
-              name="email/mobile"
-              type="email/tel"
+              id="email"
+              name="email"
+              type="text"
               placeholder="Enter email/number"
-              value={formData.email/mobile}
+              value={formData.email}
               onChange={handleChange}
               required
               className="
