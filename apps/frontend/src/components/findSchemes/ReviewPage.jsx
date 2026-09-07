@@ -358,6 +358,7 @@ function ReviewCard({
   children,
   onEdit,
 }) {
+  const { t } = useLanguage();
 
   return (
     <section

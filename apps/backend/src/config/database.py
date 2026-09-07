@@ -25,3 +25,18 @@ async def get_db():
             raise
         finally:
             await session.close()
+
+
+async def get_db_optional():
+    try:
+        async with AsyncSessionLocal() as session:
+            try:
+                yield session
+            except Exception:
+                await session.rollback()
+                yield None
+            finally:
+                await session.close()
+    except Exception:
+        yield None
+

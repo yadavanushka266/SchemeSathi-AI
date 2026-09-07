@@ -97,10 +97,10 @@ export default function MatchingSchemesPage() {
 
     return matches.filter((scheme) => {
       return (
-        scheme.name.toLowerCase().includes(searchText) ||
-        scheme.department.toLowerCase().includes(searchText) ||
-        scheme.description.toLowerCase().includes(searchText) ||
-        scheme.benefits.toLowerCase().includes(searchText)
+        (scheme.name || scheme.scheme_name || "").toLowerCase().includes(searchText) ||
+        (scheme.department || "").toLowerCase().includes(searchText) ||
+        (scheme.description || "").toLowerCase().includes(searchText) ||
+        (scheme.benefits || "").toLowerCase().includes(searchText)
       );
     });
   }, [matches, search]);
@@ -291,7 +291,7 @@ function SchemeCard({ scheme, onView }) {
           </div>
 
           <div>
-            <h2 className="text-[16px] font-bold leading-5 text-[#172b49]">{scheme.name}</h2>
+            <h2 className="text-[16px] font-bold leading-5 text-[#172b49]">{scheme.name || scheme.scheme_name}</h2>
             <p className="mt-1 text-[11px] text-slate-400">{scheme.department}</p>
           </div>
         </div>
