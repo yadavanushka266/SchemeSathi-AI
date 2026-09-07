@@ -13,15 +13,23 @@ def _describe_condition(condition: dict) -> str:
     field = condition["field"].replace("_", " ")
     operator = condition["operator"]
     value = condition["value"]
-    phrase_map = {
-        "eq": f"{field} is {value}",
-        "neq": f"{field} is not {value}",
-        "in": f"{field} is one of {value}",
-        "gte": f"{field} is at least {value}",
-        "lte": f"{field} is at most {value}",
-        "gt": f"{field} is greater than {value}",
-        "lt": f"{field} is less than {value}",
-        "contains": f"{field} includes {value}",
-        "between": f"{field} is between {value[0]} and {value[1]}",
-    }
-    return phrase_map.get(operator, f"{field} {operator} {value}")
+    if operator == "eq":
+        return f"{field} is {value}"
+    elif operator == "neq":
+        return f"{field} is not {value}"
+    elif operator == "in":
+        val_str = ", ".join(str(v) for v in value) if isinstance(value, (list, tuple)) else str(value)
+        return f"{field} is one of ({val_str})"
+    elif operator == "gte":
+        return f"{field} is at least {value}"
+    elif operator == "lte":
+        return f"{field} is at most {value}"
+    elif operator == "gt":
+        return f"{field} is greater than {value}"
+    elif operator == "lt":
+        return f"{field} is less than {value}"
+    elif operator == "contains":
+        return f"{field} includes {value}"
+    elif operator == "between" and isinstance(value, (list, tuple)) and len(value) >= 2:
+        return f"{field} is between {value[0]} and {value[1]}"
+    return f"{field} {operator} {value}"
