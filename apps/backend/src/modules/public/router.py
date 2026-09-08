@@ -24,39 +24,54 @@ class AssistantChatRequest(BaseModel):
 @router.post("/self-service/schemes-match")
 async def self_service_schemes_match(profile: dict[str, Any], db: AsyncSession | None = Depends(get_db_optional)):
     """Matches self-service user profile against schemes using the Eligibility Engine.
-    Filters strictly to return ONLY schemes that match the user's specific inputs and requirements.
+    Filters and ranks schemes that match the user's specific profile inputs and requirements.
     """
     try:
-        # Evaluate eligibility across all schemes
-        raw_matches = eligibility_service.match_schemes(profile, top_n=100, eligible_only=True)
+        # Evaluate 100% eligible schemes first
+        eligible_matches = eligibility_service.match_schemes(profile, top_n=100, eligible_only=True)
         
-        # Filter strictly for schemes where user meets 100% of required conditions (0 failed conditions)
-        eligible_matches = [
-            m for m in raw_matches 
+        # Filter for schemes with 0 failed conditions if available
+        perfect_matches = [
+            m for m in eligible_matches 
             if m.get("eligible") and len(m.get("failed_conditions", [])) == 0
         ]
         
+        # If perfect matches are scarce, fallback to overall top-scored recommended schemes
+        matches_to_rank = perfect_matches if len(perfect_matches) >= 5 else eligible_matches
+        if not matches_to_rank:
+            matches_to_rank = eligibility_service.match_schemes(profile, top_n=30, eligible_only=False)
+
         pref_support = str(profile.get("preferred_support") or profile.get("interested_scheme_type") or "").lower()
         bus_type = str(profile.get("business_type") or profile.get("occupation") or "").lower()
-        user_location = str(profile.get("location") or profile.get("state") or "").lower()
+        user_location = str(profile.get("location") or profile.get("state") or profile.get("district") or "").lower()
 
-        # Score relevance based on explicit user requirements (Location > Business Type > Support Type)
+        location_tokens = [loc.strip() for loc in user_location.split(",") if loc.strip() and len(loc.strip()) > 2]
+        bus_tokens = [b.strip() for b in bus_type.split() if b.strip() and len(b.strip()) > 2]
+        support_tokens = [s.strip() for s in pref_support.split() if s.strip() and len(s.strip()) > 2]
+
         def _relevance_score(scheme):
             score = scheme.get("score", 0.5)
-            text = f"{scheme.get('name', '')} {scheme.get('description', '')} {scheme.get('benefits', '')}".lower()
-            
-            if user_location and any(loc in text for loc in user_location.split(",")):
+            text = f"{scheme.get('name', '')} {scheme.get('description', '')} {scheme.get('benefits', '')} {scheme.get('category', '')}".lower()
+
+            if location_tokens and any(loc in text for loc in location_tokens):
                 score += 0.25
-            if bus_type and bus_type in text:
-                score += 0.15
-            if pref_support and pref_support in text:
+            if bus_tokens and any(b in text for b in bus_tokens):
+                score += 0.20
+            if support_tokens and any(s in text for s in support_tokens):
                 score += 0.10
             return score
 
-        eligible_matches.sort(key=_relevance_score, reverse=True)
+        # Remove duplicates while preserving order
+        seen_ids = set()
+        unique_matches = []
+        for m in matches_to_rank:
+            sid = m.get("scheme_id") or m.get("name")
+            if sid not in seen_ids:
+                seen_ids.add(sid)
+                unique_matches.append(m)
 
-        # Return only the top relevant qualifying schemes (max 15 high-confidence matches)
-        final_matches = eligible_matches[:15]
+        unique_matches.sort(key=_relevance_score, reverse=True)
+        final_matches = unique_matches[:20]
 
         return {"matches": final_matches, "total": len(final_matches)}
     except Exception as e:
@@ -72,6 +87,7 @@ async def self_service_assistant_chat(payload: AssistantChatRequest):
             message=payload.message,
             history=payload.history,
             phone_number=payload.phone_number,
+            profile=payload.profile,
         )
         return result
     except Exception as e:

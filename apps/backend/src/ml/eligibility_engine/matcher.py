@@ -106,18 +106,46 @@ class EligibilityMatcher:
     # -------------------------------------------------------
 
     def match_business(self, business, rule):
-
         businesses = parse_business(rule)
-
-        if "any" in businesses:
+        if not businesses or "any" in businesses:
             return True
 
-        business = normalize(business)
+        if not business or str(business).strip() == "":
+            return True
+
+        user_bus = normalize(business)
+        if not user_bus or user_bus in ["any", "all", "na", "none", "n/a"]:
+            return True
+
+        # Build expanded terms for user business
+        expanded_user_terms = {user_bus}
+
+        # Services & Micro Enterprises
+        if any(w in user_bus for w in ["tailor", "garment", "stitch", "parlour", "beauty", "salon", "repair", "service", "consult", "it", "software", "freelance", "hotel", "restaurant"]):
+            expanded_user_terms.update(["services", "msme", "micro-enterprise", "self-employment", "small business"])
+
+        # Trading & Retail
+        if any(w in user_bus for w in ["retail", "shop", "store", "trader", "vendor", "selling", "trade", "trading", "mart", "kiosk", "stall"]):
+            expanded_user_terms.update(["trading", "services", "msme", "self-employment", "micro-enterprise"])
+
+        # Agriculture & Farming
+        if any(w in user_bus for w in ["farm", "dairy", "crop", "agri", "kisan", "poultry", "cattle", "livestock", "fish", "animal"]):
+            expanded_user_terms.update(["agriculture", "farming", "dairy", "allied agriculture", "rural enterprise"])
+
+        # Manufacturing & Artisans
+        if any(w in user_bus for w in ["factory", "manufac", "unit", "product", "craft", "handicraft", "weave", "loom", "artisan", "textile"]):
+            expanded_user_terms.update(["manufacturing", "handicraft", "msme", "industrial"])
+
+        # Default fallback for general business activity
+        expanded_user_terms.update(["msme", "micro-enterprise", "small business"])
 
         for b in businesses:
-
-            if b in business:
+            b_norm = normalize(b)
+            if not b_norm or b_norm == "any":
                 return True
+            for term in expanded_user_terms:
+                if b_norm in term or term in b_norm:
+                    return True
 
         return False
 

@@ -261,8 +261,8 @@ export default function MatchingSchemesPage() {
 
             {status === "ready" && filteredSchemes.length > 0 && (
               <div className="grid gap-5 md:grid-cols-2">
-                {filteredSchemes.map((scheme) => (
-                  <SchemeCard key={scheme.scheme_id} scheme={scheme} onView={() => handleViewScheme(scheme)} />
+                {filteredSchemes.map((scheme, idx) => (
+                  <SchemeCard key={`${scheme.scheme_id || scheme.name}-${idx}`} scheme={scheme} onView={() => handleViewScheme(scheme)} />
                 ))}
               </div>
             )}

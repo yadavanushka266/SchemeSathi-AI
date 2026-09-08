@@ -36,24 +36,28 @@ class ChatbotService:
             return
 
         logger.info("initializing_chatbot_resources")
+        # Load scheme documents pickle
+        if DOCS_PATH.exists():
+            try:
+                with open(DOCS_PATH, "rb") as f:
+                    self.documents = pickle.load(f)
+                logger.info("chatbot_documents_loaded", count=len(self.documents))
+            except Exception as e:
+                logger.warning("chatbot_documents_load_failed", error=str(e))
+
+        # Attempt to load optional FAISS & SentenceTransformer
         try:
             import faiss
             from sentence_transformers import SentenceTransformer
 
-            if not INDEX_PATH.exists():
-                raise FileNotFoundError(f"FAISS index not found at {INDEX_PATH}")
-            if not DOCS_PATH.exists():
-                raise FileNotFoundError(f"Documents pickle not found at {DOCS_PATH}")
-
-            self.index = faiss.read_index(str(INDEX_PATH))
-            with open(DOCS_PATH, "rb") as f:
-                self.documents = pickle.load(f)
-
-            self.embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-            logger.info("chatbot_resources_initialized", total_schemes=len(self.documents))
+            if INDEX_PATH.exists() and len(self.documents) > 0:
+                self.index = faiss.read_index(str(INDEX_PATH))
+                self.embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+                logger.info("faiss_vector_index_ready", total_schemes=len(self.documents))
         except Exception as e:
-            logger.error("chatbot_initialization_failed", error=str(e))
-            raise
+            logger.info("faiss_unavailable_using_keyword_search_fallback", info=str(e))
+            self.index = None
+            self.embedder = None
 
         self._init_genai_client()
         self._is_initialized = True
@@ -81,41 +85,158 @@ class ChatbotService:
                 logger.info("gemini_key_invalid_format_using_local_rag", key_prefix=str(api_key)[:6])
             self._genai_client = None
 
+    def _build_enriched_query(self, message: str, history: list[dict[str, Any]], profile: Optional[dict[str, Any]] = None) -> str:
+        """Enriches short or ambiguous user messages with profile data and conversation context."""
+        parts = [message]
+
+        if profile and isinstance(profile, dict):
+            bus = profile.get("business_type") or profile.get("businessActivity") or profile.get("occupation")
+            state = profile.get("state") or profile.get("location")
+            cat = profile.get("social_category") or profile.get("category")
+            if bus and str(bus).lower() not in message.lower():
+                parts.append(str(bus))
+            if state and str(state).lower() not in message.lower():
+                parts.append(str(state))
+            if cat and str(cat).lower() not in message.lower():
+                parts.append(str(cat))
+
+        if len(message.split()) < 6 and history:
+            for turn in reversed(history[-4:]):
+                if turn.get("role") == "user":
+                    c = turn.get("content", "")
+                    if len(c) > 3 and c.lower() != message.lower():
+                        parts.append(c)
+                        break
+
+        return " ".join(parts)
+
+    def _keyword_search(self, query: str, top_k: int = 4) -> list[dict]:
+        """Fast, robust keyword search with acronym expansion and multi-field scoring."""
+        if not self.documents:
+            return []
+
+        import re
+        stopwords = {
+            "for", "in", "is", "a", "an", "the", "to", "and", "or", "of", "schemes",
+            "scheme", "government", "yojana", "want", "need", "get", "how", "what",
+            "which", "can", "i", "my", "me", "batao", "chahiye", "kaise", "kya", "about",
+            "tell", "give", "list", "apply", "details", "info", "information", "please"
+        }
+
+        alias_map = {
+            "pmegp": "prime minister employment generation programme micro small enterprise loan subsidy",
+            "mudra": "pradhan mantri mudra yojana shishu kishor tarun business loan",
+            "standup": "stand up india women sc st entrepreneur bank loan",
+            "kisan": "pm kisan samman nidhi agriculture farmer income support",
+            "vishwakarma": "pm vishwakarma artisan craftsman handicraft toolkit loan",
+            "svanidhi": "pm svanidhi street vendor working capital loan",
+            "sukanya": "sukanya samriddhi yojana girl child deposit savings",
+            "ayushman": "ayushman bharat pm jay health insurance medical hospital",
+            "handicraft": "handicraft artisan coir silk handloom weaving craft",
+            "women": "women female entrepreneur ladies mahila nari",
+            "subsidy": "subsidy margin money financial assistance grant incentive",
+            "loan": "credit loan self employment business collateral free",
+            "tailor": "tailoring garment textile stitching micro enterprise",
+            "parlour": "beauty parlour salon service micro enterprise",
+            "solar": "solar pump rooftop solar agriculture renewable energy",
+            "scholarship": "scholarship student education hostel fee concession"
+        }
+
+        raw_words = re.findall(r"\w+", query.lower())
+        tokens = set()
+        for w in raw_words:
+            if len(w) > 1 and w not in stopwords:
+                tokens.add(w)
+                if w in alias_map:
+                    for alias_token in alias_map[w].split():
+                        if alias_token not in stopwords and len(alias_token) > 2:
+                            tokens.add(alias_token)
+
+        if not tokens:
+            tokens = {w for w in raw_words if len(w) > 1}
+
+        if not tokens:
+            return self.documents[:top_k]
+
+        scored = []
+        for doc in self.documents:
+            name = (doc.get("scheme_name") or "").lower()
+            desc = (doc.get("description") or "").lower()
+            benefits = (doc.get("benefits") or "").lower()
+            elig = (doc.get("eligibility") or "").lower()
+            tags = (doc.get("tags") or "").lower()
+
+            score = 0.0
+            for t in tokens:
+                if t in name:
+                    score += 8.0
+                if t in tags:
+                    score += 5.0
+                if t in benefits:
+                    score += 3.0
+                if t in elig:
+                    score += 2.5
+                if t in desc:
+                    score += 1.5
+
+            if score > 0:
+                scored.append((score, doc))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        results = [doc for score, doc in scored[:top_k]]
+        return results if results else self.documents[:top_k]
+
     def search(self, query: str, top_k: int = 4) -> list[dict]:
-        """Performs FAISS vector search across government scheme documents (CPU synchronous)."""
+        """Performs search across government scheme documents."""
         self._ensure_initialized()
         if not query or not query.strip():
             return []
 
-        embedding = self.embedder.encode([query]).astype("float32")
-        distances, indices = self.index.search(embedding, top_k)
+        if self.index is not None and self.embedder is not None:
+            try:
+                embedding = self.embedder.encode([query]).astype("float32")
+                distances, indices = self.index.search(embedding, top_k)
 
-        results = []
-        for idx in indices[0]:
-            if 0 <= idx < len(self.documents):
-                results.append(self.documents[idx])
+                results = []
+                for idx in indices[0]:
+                    if 0 <= idx < len(self.documents):
+                        results.append(self.documents[idx])
 
-        return results
+                if results:
+                    return results
+            except Exception as e:
+                logger.warning("faiss_search_failed_fallback_to_keyword", error=str(e))
+
+        return self._keyword_search(query, top_k=top_k)
 
     async def search_async(self, query: str, top_k: int = 4) -> list[dict]:
         """Non-blocking async wrapper for FAISS search."""
         return await asyncio.to_thread(self.search, query, top_k)
 
+    def _clean_text(self, text: Any) -> str:
+        if not text:
+            return ""
+        s = str(text)
+        s = s.replace("â₹¹", "₹").replace("â\x82\xac", "₹").replace("â\x82", "₹").replace("\x82", "₹").replace("\x80", "").replace("\x9d", "").replace("\x9c", "").replace("\u20b9", "₹")
+        import re
+        s = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", "", s)
+        return s.strip()
+
     def _format_scheme_context(self, doc: dict) -> str:
         return f"""
-Scheme Name: {doc.get('scheme_name', 'N/A')}
-Level: {doc.get('level', 'Central/State')}
-Description: {doc.get('description', '')}
-Benefits: {doc.get('benefits', '')}
-Eligibility: {doc.get('eligibility', '')}
-Required Documents: {doc.get('documents', '')}
-Application Process: {doc.get('application_process', '')}
-Official Website: {doc.get('official_url', '')}
+Scheme Name: {self._clean_text(doc.get('scheme_name', 'N/A'))}
+Level: {self._clean_text(doc.get('level', 'Central/State'))}
+Description: {self._clean_text(doc.get('description', ''))}
+Benefits: {self._clean_text(doc.get('benefits', ''))}
+Eligibility: {self._clean_text(doc.get('eligibility', ''))}
+Required Documents: {self._clean_text(doc.get('documents', ''))}
+Application Process: {self._clean_text(doc.get('application_process', ''))}
+Official Website: {self._clean_text(doc.get('official_url', ''))}
 --------------------------------------------------
 """
 
-    def _fallback_summary(self, query: str, docs: list[dict]) -> str:
-        """Generates a structured, helpful scheme response when an LLM key is not configured."""
+    def _fallback_summary(self, query: str, docs: list[dict], profile: Optional[dict[str, Any]] = None) -> str:
+        """Generates a structured, highly accurate scheme response when an LLM key is not configured."""
         if not docs:
             return (
                 "I couldn't find specific government schemes matching your search. "
@@ -123,42 +244,46 @@ Official Website: {doc.get('official_url', '')}
                 "'women entrepreneurship', or 'MSME subsidy'."
             )
 
-        top = docs[0]
-        s_name = top.get('scheme_name', 'Government Scheme')
-        benefits = top.get('benefits', 'Financial assistance and subsidy')
-        eligibility = top.get('eligibility', 'Check official guidelines')
-        documents = top.get('documents', 'Aadhaar card, Bank passbook, Passport size photo')
-        app_proc = top.get('application_process', 'Apply online at official portal')
-        url = top.get('official_url', 'https://www.myscheme.gov.in')
+        output_lines = [f"Here are the top matching government schemes for **\"{self._clean_text(query)}\"**:\n"]
 
-        other_schemes = [d.get('scheme_name') for d in docs[1:4] if d.get('scheme_name')]
-        other_list_str = ""
-        if other_schemes:
-            other_list_str = "\n\n**Other Matching Schemes:**\n" + "\n".join(f"- {name}" for name in other_schemes)
+        for i, doc in enumerate(docs[:3]):
+            s_name = self._clean_text(doc.get('scheme_name', 'Government Scheme'))
+            benefits = self._clean_text(doc.get('benefits', 'Financial assistance and subsidy'))
+            eligibility = self._clean_text(doc.get('eligibility', 'Check official guidelines'))
+            documents = self._clean_text(doc.get('documents', 'Aadhaar card, Bank passbook, Photo'))
+            app_proc = self._clean_text(doc.get('application_process', 'Apply online at official portal'))
+            url = self._clean_text(doc.get('official_url', 'https://www.myscheme.gov.in'))
 
-        return (
-            f"Here is the most relevant scheme for **\"{query}\"**:\n\n"
-            f"### {s_name}\n"
-            f"- **Benefits:** {benefits}\n"
-            f"- **Eligibility:** {eligibility}\n"
-            f"- **Required Documents:** {documents}\n"
-            f"- **How to Apply:** {app_proc}\n"
-            f"- **Official Link:** [{s_name}]({url})\n"
-            f"{other_list_str}\n\n"
-            f"Would you like more details on how to apply or what documents to prepare?"
-        )
+            output_lines.append(
+                f"### {i+1}. {s_name}\n"
+                f"- **Key Benefits:** {benefits[:300]}{'...' if len(benefits) > 300 else ''}\n"
+                f"- **Eligibility:** {eligibility[:250]}{'...' if len(eligibility) > 250 else ''}\n"
+                f"- **Required Documents:** {documents[:200]}{'...' if len(documents) > 200 else ''}\n"
+                f"- **How to Apply:** {app_proc[:250]}{'...' if len(app_proc) > 250 else ''}\n"
+                f"- **Official Portal:** [{s_name}]({url})\n"
+            )
+
+        output_lines.append("Would you like step-by-step guidance on how to apply or what documents to prepare?")
+        return "\n".join(output_lines)
 
     async def chat(
         self,
         message: str,
         history: list[dict[str, Any]] = [],
         phone_number: Optional[str] = None,
+        profile: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
-        """Main non-blocking RAG pipeline: vector search + Gemini generation."""
+        """Main RAG pipeline: profile-aware vector/keyword search + Gemini generation."""
         await asyncio.to_thread(self._ensure_initialized)
 
-        retrieved_docs = await self.search_async(message, top_k=4)
+        enriched_query = self._build_enriched_query(message, history, profile)
+        retrieved_docs = await self.search_async(enriched_query, top_k=4)
         schemes_context = "\n".join(self._format_scheme_context(d) for d in retrieved_docs)
+
+        # Build Profile Context string if profile is passed
+        profile_context = ""
+        if profile and isinstance(profile, dict):
+            profile_context = "CITIZEN PROFILE DETAILS:\n" + "\n".join(f"- {k}: {v}" for k, v in profile.items() if v) + "\n"
 
         # Try generating response with Gemini if client is ready
         if self._genai_client:
@@ -174,6 +299,7 @@ Official Website: {doc.get('official_url', '')}
                 "Use the provided official scheme information as your primary ground truth.\n"
                 "Formatting Guidelines:\n"
                 "- Keep explanations clear, empathetic, and structured with bullet points.\n"
+                "- Directly answer the citizen's question accurately based on their profile and explicit prompt.\n"
                 "- Highlight key benefits, who is eligible, and documents required.\n"
                 "- Provide official application instructions and portal URLs.\n"
                 "- If comparing multiple schemes, clearly contrast their targets and benefits."
@@ -181,6 +307,7 @@ Official Website: {doc.get('official_url', '')}
 
             prompt = f"""{system_instruction}
 
+{profile_context}
 OFFICIAL GOVERNMENT SCHEMES DATA:
 {schemes_context}
 
@@ -190,9 +317,14 @@ RECENT CONVERSATION HISTORY:
 CITIZEN QUESTION:
 {message}
 
-Please provide a helpful, accurate, and easy-to-understand response for the citizen:"""
+Please provide a helpful, accurate, and easy-to-understand response tailored specifically for the citizen:"""
 
-            models_to_try = [settings.CHATBOT_MODEL, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+            raw_models = [settings.CHATBOT_MODEL, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+            models_to_try = []
+            for m in raw_models:
+                if m and m not in models_to_try and "3.5" not in m:
+                    models_to_try.append(m)
+
             for model_name in models_to_try:
                 try:
                     def _call_gemini():
@@ -211,7 +343,7 @@ Please provide a helpful, accurate, and easy-to-understand response for the citi
                     continue
 
         # Fallback if Gemini not available or calls failed
-        reply = self._fallback_summary(message, retrieved_docs)
+        reply = self._fallback_summary(message, retrieved_docs, profile)
         return {
             "reply": reply,
             "retrieved_schemes": retrieved_docs

@@ -11,6 +11,7 @@ class ChatMessageRequest(BaseModel):
     message: str
     history: list[dict[str, Any]] = []
     phone_number: Optional[str] = None
+    profile: Optional[dict[str, Any]] = None
 
 
 @router.post("/chat")
@@ -20,6 +21,7 @@ async def chat_with_assistant(payload: ChatMessageRequest):
         message=payload.message,
         history=payload.history,
         phone_number=payload.phone_number,
+        profile=payload.profile,
     )
     return result
 
