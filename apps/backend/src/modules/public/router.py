@@ -1,22 +1,15 @@
 from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 
 from src.config.database import get_db_optional
-from src.integrations import ai_client
-from src.ml.model5_engine import (
-    BeneficiaryProfileBuilder,
-    DEFAULT_SCHEMES_CATALOG,
-    match_schemes_with_engine,
-)
-from src.ml.chatbot.chatbot_service import scheme_chatbot
-from src.modules.matching.explainer import build_explanation
-from src.modules.matching.rules_engine import evaluate_eligibility
-from src.modules.schemes.models import Scheme
-from src.modules.schemes.repository import list_all_current_versions
+from src.config.logging import get_logger
+from src.modules.chatbot.service import chatbot_service
+from src.modules.eligibility.service import eligibility_service
+
+logger = get_logger("public_router")
 
 router = APIRouter(prefix="/public", tags=["Public"])
 
@@ -30,83 +23,63 @@ class AssistantChatRequest(BaseModel):
 
 @router.post("/self-service/schemes-match")
 async def self_service_schemes_match(profile: dict[str, Any], db: AsyncSession | None = Depends(get_db_optional)):
-    """Matches self-service user profile against all active schemes using Model 5 ML & Eligibility Engine."""
-    builder = BeneficiaryProfileBuilder()
-    normalized_profile = builder.build_profile(profile)
+    """Matches self-service user profile against schemes using the Eligibility Engine.
+    Filters strictly to return ONLY schemes that match the user's specific inputs and requirements.
+    """
+    try:
+        # Evaluate eligibility across all schemes
+        raw_matches = eligibility_service.match_schemes(profile, top_n=100, eligible_only=True)
+        
+        # Filter strictly for schemes where user meets 100% of required conditions (0 failed conditions)
+        eligible_matches = [
+            m for m in raw_matches 
+            if m.get("eligible") and len(m.get("failed_conditions", [])) == 0
+        ]
+        
+        pref_support = str(profile.get("preferred_support") or profile.get("interested_scheme_type") or "").lower()
+        bus_type = str(profile.get("business_type") or profile.get("occupation") or "").lower()
+        user_location = str(profile.get("location") or profile.get("state") or "").lower()
 
-    schemes_to_evaluate = []
-
-    # 1. Attempt fetching active schemes & versions from database if available (with timeout)
-    if db is not None:
-        try:
-            async def _fetch_from_db():
-                results = []
-                versions = await list_all_current_versions(db)
-                for version in versions:
-                    scheme = (await db.execute(select(Scheme).where(Scheme.id == version.scheme_id))).scalar_one_or_none()
-                    if scheme and scheme.is_active:
-                        results.append({
-                            "scheme_id": str(scheme.id),
-                            "name": scheme.name,
-                            "scheme_name": scheme.name,
-                            "category": scheme.category,
-                            "department": getattr(scheme, "department", "Government of India"),
-                            "description": scheme.description,
-                            "benefits": getattr(scheme, "benefits", "Financial assistance and support."),
-                            "official_source_url": getattr(scheme, "official_source_url", None),
-                            "application_route": getattr(scheme, "application_route", "Apply through official portal."),
-                            "required_documents": getattr(scheme, "required_documents", []),
-                            "eligibility_criteria": version.eligibility_criteria or [],
-                        })
-                return results
-            schemes_to_evaluate = await asyncio.wait_for(_fetch_from_db(), timeout=5)
-        except Exception:
-            pass
-
-    # 2. If DB has configured schemes, evaluate them
-    if schemes_to_evaluate:
-        matches = []
-        for item in schemes_to_evaluate:
-            criteria = item.get("eligibility_criteria") or []
-            score, matched, unmatched = evaluate_eligibility(normalized_profile, criteria)
+        # Score relevance based on explicit user requirements (Location > Business Type > Support Type)
+        def _relevance_score(scheme):
+            score = scheme.get("score", 0.5)
+            text = f"{scheme.get('name', '')} {scheme.get('description', '')} {scheme.get('benefits', '')}".lower()
             
-            if not criteria or score >= 0.3:
-                final_score = score if criteria else 0.8
-                explanation = build_explanation(item["name"], matched, unmatched)
-                
-                matches.append({
-                    "scheme_id": str(item.get("scheme_id")),
-                    "name": item["name"],
-                    "scheme_name": item["name"],
-                    "category": item.get("category", "Government Scheme"),
-                    "department": item.get("department", "Government of India"),
-                    "description": item.get("description", ""),
-                    "benefits": item.get("benefits", "Financial Assistance"),
-                    "score": final_score,
-                    "explanation": explanation,
-                    "matched_conditions": matched,
-                    "unmatched_conditions": unmatched,
-                    "official_source_url": item.get("official_source_url"),
-                    "application_route": item.get("application_route", "Apply via official portal."),
-                    "required_documents": item.get("required_documents", []),
-                })
-        matches.sort(key=lambda x: x["score"], reverse=True)
-        return {"matches": matches, "total": len(matches)}
+            if user_location and any(loc in text for loc in user_location.split(",")):
+                score += 0.25
+            if bus_type and bus_type in text:
+                score += 0.15
+            if pref_support and pref_support in text:
+                score += 0.10
+            return score
 
-    # 3. Use Model 5 Eligibility Engine linked with all_schemes_eligibility_table.csv & ML model (offloaded to thread)
-    matches = await asyncio.to_thread(match_schemes_with_engine, normalized_profile, 30)
-    return {"matches": matches, "total": len(matches)}
+        eligible_matches.sort(key=_relevance_score, reverse=True)
+
+        # Return only the top relevant qualifying schemes (max 15 high-confidence matches)
+        final_matches = eligible_matches[:15]
+
+        return {"matches": final_matches, "total": len(final_matches)}
+    except Exception as e:
+        logger.error("self_service_schemes_match_error", error=str(e))
+        return {"matches": [], "total": 0, "error": str(e)}
 
 
 @router.post("/self-service/assistant-chat")
 async def self_service_assistant_chat(payload: AssistantChatRequest):
-    """Processes citizen inquiries with SchemeSathi RAG Chatbot grounded in 653 schemes."""
-    result = await scheme_chatbot.answer_question(
-        query=payload.message,
-        history=payload.history,
-        user_profile=payload.profile
-    )
-    return {
-        "reply": result["reply"],
-        "schemes": result.get("schemes", []),
-    }
+    """Processes citizen query with SchemeSathi AI Chatbot (FAISS semantic retrieval + Gemini RAG)."""
+    try:
+        result = await chatbot_service.chat(
+            message=payload.message,
+            history=payload.history,
+            phone_number=payload.phone_number,
+        )
+        return result
+    except Exception as e:
+        logger.error("self_service_assistant_chat_error", error=str(e))
+        return {
+            "reply": (
+                "I'm sorry, I encountered a temporary issue while retrieving scheme details. "
+                "Please try asking your question again."
+            ),
+            "retrieved_schemes": []
+        }
