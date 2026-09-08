@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import Header from "../layout/Header";
 import { Footer } from "../layout";
+import { setUserItem } from "../../lib/userStorage";
+import { transcribeVoice } from "../../lib/api";
 
 
 export default function VoiceAssistantPage() {
@@ -10,118 +12,74 @@ export default function VoiceAssistantPage() {
   const [isListening, setIsListening] = useState(false);
 
   const [transcript, setTranscript] = useState("");
+  const [speechError, setSpeechError] = useState("");
 
   const [profile, setProfile] = useState({
-    businessType: "Dairy Business",
-    location: "Rajasthan",
-    requirement: "Loan of ₹5 Lakh",
-    businessStage: "Existing business",
+    businessType: "Not detected yet",
+    location: "Not detected yet",
+    requirement: "Not detected yet",
+    businessStage: "Not detected yet",
   });
 
-  const recognitionRef = useRef(null);
-
-
-  /* ===== SPEECH RECOGNITION SETUP ===== */
-
-  useEffect(() => {
-
-    const SpeechRecognition =
-      window.SpeechRecognition ||
-      window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = "en-IN";
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (event) => {
-
-      const text =
-        event.results[0][0].transcript;
-
-      setTranscript(text);
-
-      extractProfile(text);
-    };
-
-    recognition.onerror = (event) => {
-
-      console.error(
-        "Speech recognition error:",
-        event.error
-      );
-
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-
-
-    return () => {
-
-      recognition.stop();
-
-      recognitionRef.current = null;
-
-    };
-
-  }, []);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
 
   /* ===== START / STOP MICROPHONE ===== */
 
-  const handleMicClick = () => {
-
-    const recognition =
-      recognitionRef.current;
-
-    if (!recognition) {
-
-      alert(
-        "Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge."
-      );
-
-      return;
-    }
-
+  const handleMicClick = async () => {
     if (isListening) {
-
-      recognition.stop();
-
-      setIsListening(false);
-
+      mediaRecorderRef.current?.stop();
       return;
     }
 
     try {
+      setSpeechError("");
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        throw new Error("This browser does not support microphone recording.");
+      }
 
-      setTranscript("");
-
-      recognition.start();
-
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+      recorder.onstop = async () => {
+        setIsListening(false);
+        stream.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType });
+        const audioBase64 = await blobToBase64(audioBlob);
+        try {
+          const audioFormat = recorder.mimeType.includes("ogg") ? "ogg" : "webm";
+          const result = await transcribeVoice(audioBase64, "hi", audioFormat);
+          const text = result.text?.trim();
+          if (!text) throw new Error("No speech was detected.");
+          setTranscript(text);
+          extractProfile(text);
+        } catch (error) {
+          console.error("Bhashini transcription failed:", error);
+          setSpeechError("Bhashini could not understand the recording. Please speak clearly and try again.");
+        }
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsListening(true);
     } catch (error) {
-
       console.error(
         "Unable to start microphone:",
         error
       );
-
+      setSpeechError("Microphone access is unavailable. Allow permission and try again.");
     }
   };
 
+  const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 
   /* ===== SIMPLE PROFILE EXTRACTION ===== */
 
@@ -309,15 +267,12 @@ export default function VoiceAssistantPage() {
     /* Save information in the same
        storage used by your existing pages */
 
-    localStorage.setItem(
-      "schemeSaathiBusinessDetails",
-      JSON.stringify({
+    setUserItem("schemeSaathiBusinessDetails", {
         businessType:
           profile.businessType,
         businessStage:
           profile.businessStage,
-      })
-    );
+      });
 
 
     localStorage.setItem(
@@ -605,6 +560,13 @@ export default function VoiceAssistantPage() {
                   </div>
                 )}
 
+                {speechError && (
+                  <p className="mt-4 max-w-117.5 text-center text-[12px] leading-5 text-amber-700">
+                    {speechError}
+                  </p>
+                )}
+
+
               </div>
 
             </section>
@@ -641,6 +603,7 @@ export default function VoiceAssistantPage() {
               <ProfileField
                 label="Business Type"
                 value={profile.businessType}
+                onChange={(value) => setProfile((current) => ({ ...current, businessType: value }))}
               />
 
 
@@ -649,6 +612,7 @@ export default function VoiceAssistantPage() {
               <ProfileField
                 label="Location"
                 value={profile.location}
+                onChange={(value) => setProfile((current) => ({ ...current, location: value }))}
               />
 
 
@@ -657,6 +621,7 @@ export default function VoiceAssistantPage() {
               <ProfileField
                 label="Requirement"
                 value={profile.requirement}
+                onChange={(value) => setProfile((current) => ({ ...current, requirement: value }))}
               />
 
 
@@ -665,6 +630,7 @@ export default function VoiceAssistantPage() {
               <ProfileField
                 label="Business Stage"
                 value={profile.businessStage}
+                onChange={(value) => setProfile((current) => ({ ...current, businessStage: value }))}
                 last
               />
 
@@ -743,6 +709,7 @@ export default function VoiceAssistantPage() {
 function ProfileField({
   label,
   value,
+  onChange,
   last = false,
 }) {
 
@@ -768,16 +735,13 @@ function ProfileField({
         {label}
       </p>
 
-      <p
-        className="
-          mt-1.5
-          text-[15px]
-          font-medium
-          text-slate-700
-        "
-      >
-        {value}
-      </p>
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        aria-label={label}
+        className="mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] font-medium text-slate-700 outline-none transition focus:border-[#0d2b55] focus:ring-2 focus:ring-[#0d2b55]/10"
+      />
     </div>
   );
 }

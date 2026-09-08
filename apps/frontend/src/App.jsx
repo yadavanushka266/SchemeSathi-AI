@@ -20,6 +20,7 @@ import {
 import AboutPage from "./components/about/AboutPage";
 
 import CategoriesPage from "./components/categories/CategoriesPage";
+import CategorySchemesPage from "./components/categories/CategorySchemesPage";
 
 import ResourcesPage from "./components/resources/ResourcesPage";
 
@@ -98,6 +99,11 @@ export default function App() {
 
 if (path === "/categories") {
   return <CategoriesPage />;
+}
+
+if (path.startsWith("/categories/")) {
+  const category = decodeURIComponent(path.slice("/categories/".length));
+  return <CategorySchemesPage category={category} />;
 }
 
 if (path === "/resources") {

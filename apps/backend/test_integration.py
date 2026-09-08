@@ -12,7 +12,7 @@ async def run_all_tests():
     # TEST 1: Eligibility Service
     print("\n[TEST 1] Testing EligibilityService matching...")
     test_profile = {
-        "age": 28,
+        "age": 35,
         "gender": "Female",
         "category": "SC",
         "annual_income": "₹1 - ₹3 Lakh",

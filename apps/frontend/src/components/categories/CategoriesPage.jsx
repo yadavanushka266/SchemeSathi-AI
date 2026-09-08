@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "../layout";
+import { fetchCategoryCounts } from "../../lib/api";
 
 /* ======= CATEGORY DATA ========= */
 
@@ -8,7 +9,6 @@ const categories = [
     id: 1,
     name: "Business Loans",
     icon: "💰",
-    count: 12,
     description:
       "Financial support and credit facilities to start, expand or manage your business.",
     tags: ["Loans", "Credit", "Finance"],
@@ -17,7 +17,6 @@ const categories = [
     id: 2,
     name: "MSME & Industries",
     icon: "🏭",
-    count: 18,
     description:
       "Government schemes designed to support micro, small and medium enterprises.",
     tags: ["MSME", "Industry", "Business"],
@@ -26,7 +25,6 @@ const categories = [
     id: 3,
     name: "Startup & Innovation",
     icon: "🚀",
-    count: 10,
     description:
       "Funding, incubation and other support for startups and innovative businesses.",
     tags: ["Startup", "Innovation", "Funding"],
@@ -35,7 +33,6 @@ const categories = [
     id: 4,
     name: "Education & Skills",
     icon: "🎓",
-    count: 15,
     description:
       "Scholarships, training and skill development opportunities for individuals.",
     tags: ["Education", "Skills", "Training"],
@@ -44,7 +41,6 @@ const categories = [
     id: 5,
     name: "Women Entrepreneurs",
     icon: "👩‍💼",
-    count: 9,
     description:
       "Special financial and business support programs for women entrepreneurs.",
     tags: ["Women", "Business", "Finance"],
@@ -53,7 +49,6 @@ const categories = [
     id: 6,
     name: "Agriculture & Rural Business",
     icon: "🌾",
-    count: 14,
     description:
       "Support for farmers, rural entrepreneurs and agriculture-based businesses.",
     tags: ["Agriculture", "Rural", "Farming"],
@@ -62,7 +57,6 @@ const categories = [
     id: 7,
     name: "Employment & Livelihood",
     icon: "💼",
-    count: 11,
     description:
       "Schemes supporting employment, self-employment and sustainable livelihoods.",
     tags: ["Employment", "Jobs", "Livelihood"],
@@ -71,7 +65,6 @@ const categories = [
     id: 8,
     name: "Housing & Infrastructure",
     icon: "🏠",
-    count: 8,
     description:
       "Government assistance related to housing, infrastructure and basic facilities.",
     tags: ["Housing", "Infrastructure", "Development"],
@@ -80,7 +73,6 @@ const categories = [
     id: 9,
     name: "Social Welfare",
     icon: "🤝",
-    count: 16,
     description:
       "Welfare programs providing assistance and support to eligible citizens.",
     tags: ["Welfare", "Support", "Social"],
@@ -89,7 +81,6 @@ const categories = [
     id: 10,
     name: "Financial Assistance",
     icon: "💳",
-    count: 13,
     description:
       "Direct financial assistance, subsidies and other monetary benefits.",
     tags: ["Subsidy", "Grant", "Finance"],
@@ -98,7 +89,6 @@ const categories = [
     id: 11,
     name: "Digital & Technology",
     icon: "💻",
-    count: 7,
     description:
       "Programs helping businesses adopt digital tools, technology and innovation.",
     tags: ["Technology", "Digital", "Innovation"],
@@ -107,7 +97,6 @@ const categories = [
     id: 12,
     name: "Health & Insurance",
     icon: "🏥",
-    count: 10,
     description:
       "Government programs supporting healthcare, insurance and medical assistance.",
     tags: ["Health", "Insurance", "Healthcare"],
@@ -120,6 +109,13 @@ const categories = [
 
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");
+  const [categoryCounts, setCategoryCounts] = useState({});
+
+  useEffect(() => {
+    fetchCategoryCounts()
+      .then(setCategoryCounts)
+      .catch(() => setCategoryCounts({}));
+  }, []);
 
   /* ==========================================================
      FILTER CATEGORIES
@@ -155,7 +151,7 @@ export default function CategoriesPage() {
     );
 
     window.location.assign(
-      "/find-schemes/matching-schemes"
+      `/categories/${encodeURIComponent(category.name)}`
     );
   };
 
@@ -336,6 +332,7 @@ export default function CategoriesPage() {
                 <CategoryCard
                   key={category.id}
                   category={category}
+                  count={categoryCounts[category.name]}
                   onExplore={() =>
                     handleExplore(category)
                   }
@@ -360,6 +357,7 @@ export default function CategoriesPage() {
 
 function CategoryCard({
   category,
+  count,
   onExplore,
 }) {
   return (
@@ -410,7 +408,7 @@ function CategoryCard({
             text-[#8c6b00]
           "
         >
-          {category.count} Schemes
+          {count ?? "-"} Schemes
         </span>
 
       </div>

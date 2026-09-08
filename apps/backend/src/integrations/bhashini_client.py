@@ -7,7 +7,7 @@ logger = get_logger("bhashini_client")
 _HTTP_TIMEOUT = 30.0
 
 
-async def speech_to_text(audio_base64: str, source_language: str) -> dict:
+async def speech_to_text(audio_base64: str, source_language: str, audio_format: str = "wav") -> dict:
     """Transcribes audio using Bhashini pipeline (ULCA-Dhruva).
     Falls back to ai_client if Bhashini credentials are not configured or request fails.
     """
@@ -56,7 +56,7 @@ async def speech_to_text(audio_base64: str, source_language: str) -> dict:
                         "config": {
                             "language": {"sourceLanguage": source_language},
                             "serviceId": service_id,
-                            "audioFormat": "wav"
+                            "audioFormat": audio_format
                         }
                     }
                 ],

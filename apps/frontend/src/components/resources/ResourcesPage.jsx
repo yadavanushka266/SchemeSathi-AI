@@ -153,6 +153,7 @@ const resourceCategories = [
 export default function ResourcesPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [selectedResource, setSelectedResource] = useState(null);
 
   /* ====== FILTER RESOURCES ====== */
 
@@ -186,17 +187,11 @@ export default function ResourcesPage() {
   /* ====== OPEN RESOURCE ====== */
 
   const handleOpenResource = (resource) => {
-
     localStorage.setItem(
       "schemeSaathiSelectedResource",
       JSON.stringify(resource)
     );
-
-    if (resource.url) {
-      window.open(resource.url, "_blank", "noopener,noreferrer");
-    } else {
-      alert(`No link is available yet for "${resource.title}".`);
-    }
+    setSelectedResource(resource);
   };
 
   return (
@@ -531,6 +526,13 @@ export default function ResourcesPage() {
 
       </div>
 
+      {selectedResource && (
+        <ResourceDetailsModal
+          resource={selectedResource}
+          onClose={() => setSelectedResource(null)}
+        />
+      )}
+
     </MainLayout>
   );
 }
@@ -734,3 +736,142 @@ function EmptyResources({ onReset }) {
     </div>
   );
 }
+
+function ResourceDetailsModal({ resource, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#172b49]/45 px-5 py-8"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="resource-dialog-title"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0d2b55] text-xl">
+              {resource.icon}
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#d8aa2d]">
+                {resource.category} · {resource.type}
+              </p>
+              <h2 id="resource-dialog-title" className="mt-1 text-xl font-bold text-[#172b49]">
+                {resource.title}
+              </h2>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Close resource details"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xl text-slate-500 transition hover:bg-slate-100 hover:text-[#172b49]"
+          >
+            ×
+          </button>
+        </div>
+
+        <p className="mt-6 text-[13px] leading-6 text-slate-600">{resource.description}</p>
+
+        <div className="mt-5 rounded-xl bg-[#f7f8fc] p-4">
+          <h3 className="text-[13px] font-bold text-[#172b49]">{resourceContent[resource.id].sectionTitle}</h3>
+          <p className="mt-2 text-[12px] leading-5 text-slate-600">
+            {resourceContent[resource.id].summary}
+          </p>
+          <ul className="mt-3 space-y-2">
+            {resourceContent[resource.id].items.map((item) => (
+              <li key={item} className="flex gap-2 text-[12px] leading-5 text-slate-600">
+                <span className="font-bold text-[#d8aa2d]">•</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 rounded-lg border border-slate-200 px-5 text-[12px] font-semibold text-[#0d2b55] transition hover:bg-slate-50"
+          >
+            Close
+          </button>
+          <a
+            href={resource.url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex h-10 items-center justify-center rounded-lg bg-[#0d2b55] px-5 text-[12px] font-semibold text-white transition hover:bg-[#173b70]"
+          >
+            Open Official Source ↗
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const resourceContent = {
+  1: {
+    sectionTitle: "Find a suitable scheme",
+    summary: "Start with your needs, then narrow the search using the details that government schemes use for eligibility.",
+    items: ["Choose a category such as business, education, agriculture or welfare.", "Check your state, district, age, income and social category requirements.", "Compare benefits, documents and the official application route before deciding."],
+  },
+  2: {
+    sectionTitle: "Application steps",
+    summary: "A complete application is easier to process when you prepare before opening the official form.",
+    items: ["Read the scheme eligibility rules and application deadline.", "Create an account or sign in on the official portal.", "Upload clear documents, submit the form and save the acknowledgement number."],
+  },
+  3: {
+    sectionTitle: "Document checklist",
+    summary: "The exact checklist changes by scheme, but these document groups are commonly requested.",
+    items: ["Identity and address proof, such as Aadhaar or another accepted document.", "Bank account details, photograph and income, caste or disability certificate where applicable.", "Business registration, quotation, project report or licence for business-related support."],
+  },
+  4: {
+    sectionTitle: "Common questions",
+    summary: "Use these answers as a starting point, then confirm scheme-specific rules on the official portal.",
+    items: ["Eligibility depends on the scheme, applicant profile and location.", "Benefits may be financial support, training, insurance, subsidy or a service.", "Only the official department or portal can confirm application status and approval."],
+  },
+  5: {
+    sectionTitle: "Improve your eligibility",
+    summary: "Good preparation cannot change a scheme's rules, but it can help you avoid preventable rejection or delay.",
+    items: ["Keep personal, bank and business information consistent across documents.", "Apply only when your income, location and activity match the scheme conditions.", "Submit complete, readable documents before the stated deadline."],
+  },
+  6: {
+    sectionTitle: "Loans, subsidies and grants",
+    summary: "These forms of support work differently, so compare the financial responsibility before applying.",
+    items: ["Loans usually require repayment and may include interest or a beneficiary contribution.", "Subsidies reduce an approved cost or loan burden under defined conditions.", "Grants generally support an approved purpose and may require progress reporting."],
+  },
+  7: {
+    sectionTitle: "MSME registration",
+    summary: "Udyam registration gives eligible enterprises an official MSME identity and can support access to selected programs.",
+    items: ["Keep Aadhaar, PAN and business or GST details ready as applicable.", "Use only the official Udyam Registration portal.", "Save the registration certificate and update details when required."],
+  },
+  8: {
+    sectionTitle: "Startup support",
+    summary: "Startup support can combine funding, incubation, mentoring, innovation programs and market access.",
+    items: ["Review whether your venture meets the startup recognition conditions.", "Look for incubators, challenges, funding programs and mentor networks.", "Prepare a concise business plan, problem statement and growth information."],
+  },
+  9: {
+    sectionTitle: "Before you apply",
+    summary: "Use this final check to reduce avoidable errors in a government scheme application.",
+    items: ["Confirm eligibility and the application deadline.", "Rename and check every document before uploading it.", "Save the submitted form, acknowledgement and any reference number."],
+  },
+  10: {
+    sectionTitle: "Avoid application mistakes",
+    summary: "Small inconsistencies can cause delays, clarification requests or rejection.",
+    items: ["Do not enter names, dates, income or bank details differently from your documents.", "Do not upload blurred, password-protected or incomplete files.", "Do not pay unofficial agents or use links that are not from a verified government domain."],
+  },
+  11: {
+    sectionTitle: "Eligibility factors",
+    summary: "Eligibility is usually a combination of personal, financial, geographic and activity-based conditions.",
+    items: ["Personal factors can include age, gender, social category and disability.", "Financial factors can include annual income, assets or business turnover.", "Activity and location factors can include occupation, business stage, state and district."],
+  },
+  12: {
+    sectionTitle: "Types of financial assistance",
+    summary: "Understand what kind of support a scheme provides before committing to its application conditions.",
+    items: ["Direct benefits may be paid to an eligible beneficiary's bank account.", "Interest support or subsidies may reduce the cost of an approved loan.", "Grants and reimbursements may require invoices, milestones or post-approval reporting."],
+  },
+};

@@ -40,15 +40,52 @@ export async function fetchMatchingSchemes(profilePayload) {
   return response.data;
 }
 
+export async function transcribeVoice(audioBase64, language = "hi", audioFormat = "webm") {
+  const response = await api.post("/public/self-service/transcribe", {
+    audio_base64: audioBase64,
+    language,
+    audio_format: audioFormat,
+  });
+  return response.data;
+}
+
+export async function fetchCategoryCounts() {
+  const response = await api.get("/public/self-service/category-counts");
+  return response.data.counts || {};
+}
+
+export async function fetchSchemeCount() {
+  const response = await api.get("/public/self-service/scheme-count");
+  return response.data.count || 0;
+}
+
+export async function fetchDatasetCompleteness() {
+  const response = await api.get("/public/self-service/dataset-completeness");
+  return response.data.completeness || 0;
+}
+
+export async function fetchCategorySchemes(category) {
+  const response = await api.get("/public/self-service/category-schemes", {
+    params: { category },
+  });
+  return response.data;
+}
+
 /* Sends message and history to the SchemeSathi AI Chatbot (FAISS RAG + Gemini)
    and returns { reply: string, retrieved_schemes: array }. */
-export async function sendAssistantMessage(message, history = [], phoneNumber = null) {
+export async function sendAssistantMessage(
+  message,
+  history = [],
+  phoneNumber = null,
+  profile = null
+) {
   const response = await api.post("/public/self-service/assistant-chat", {
     message,
     history,
     phone_number: phoneNumber || null,
     profile: profile || null,
   });
+
   return response.data;
 }
 

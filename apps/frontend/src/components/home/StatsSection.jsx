@@ -1,12 +1,25 @@
-import React from "react";
-
-const stats = [
-  { value: "500+", label: "Government Schemes" },
-  { value: "25+", label: "States & UTs Covered" },
-  { value: "100%", label: "Verified & Trusted Data" },
-];
+import React, { useEffect, useState } from "react";
+import { fetchDatasetCompleteness, fetchSchemeCount } from "../../lib/api";
 
 export default function StatsSection() {
+  const [schemeCount, setSchemeCount] = useState(null);
+  const [completeness, setCompleteness] = useState(null);
+
+  useEffect(() => {
+    fetchSchemeCount()
+      .then(setSchemeCount)
+      .catch(() => setSchemeCount(null));
+    fetchDatasetCompleteness()
+      .then(setCompleteness)
+      .catch(() => setCompleteness(null));
+  }, []);
+
+  const stats = [
+    { value: schemeCount === null ? "-" : schemeCount, label: "Government Schemes" },
+    { value: "25+", label: "States & UTs Covered" },
+    { value: completeness === null ? "-" : `${completeness}%`, label: "Dataset Completeness" },
+  ];
+
   return (
     <section className="mx-auto max-w-7xl px-5 pt-8 sm:px-8 lg:px-10">
       <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:grid-cols-3">
