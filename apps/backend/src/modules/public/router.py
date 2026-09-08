@@ -2,6 +2,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
 
 from src.config.database import get_db_optional
 from src.config.logging import get_logger
@@ -17,6 +18,7 @@ class AssistantChatRequest(BaseModel):
     message: str
     history: list[dict[str, Any]] = []
     phone_number: str | None = None
+    profile: dict[str, Any] | None = None
 
 
 @router.post("/self-service/schemes-match")

@@ -2,7 +2,7 @@ import axios from "axios";
 
 /* Base URL comes from the Vite env so each environment (dev/staging/prod)
    can point at its own backend without touching this file. */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -47,6 +47,7 @@ export async function sendAssistantMessage(message, history = [], phoneNumber = 
     message,
     history,
     phone_number: phoneNumber || null,
+    profile: profile || null,
   });
   return response.data;
 }

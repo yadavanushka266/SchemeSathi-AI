@@ -8,6 +8,7 @@ Main Eligibility Engine
 ============================================================
 """
 
+import os
 import pandas as pd
 
 try:
@@ -24,14 +25,20 @@ except ImportError:
 
 class EligibilityEngine:
 
-    def __init__(self, csv_path):
+    def __init__(self, csv_path=None):
 
         self.matcher = EligibilityMatcher()
-
         self.scorer = SchemeScorer()
 
-        self.df = pd.read_csv(csv_path)
+        if csv_path is None or not os.path.exists(csv_path):
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            resolved = os.path.join(base_dir, "all_schemes_eligibility_table.csv")
+            if os.path.exists(resolved):
+                csv_path = resolved
+            elif csv_path and os.path.exists(os.path.join(base_dir, csv_path)):
+                csv_path = os.path.join(base_dir, csv_path)
 
+        self.df = pd.read_csv(csv_path)
         self.df.fillna("", inplace=True)
 
     # -------------------------------------------------------

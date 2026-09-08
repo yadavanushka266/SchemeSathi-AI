@@ -53,7 +53,10 @@ async def lifespan(app: FastAPI):
         
     yield
     logger.info("application_shutdown")
-    await engine.dispose()
+    try:
+        await engine.dispose()
+    except Exception:
+        pass
 
 
 app = FastAPI(
