@@ -3,6 +3,7 @@ import Header from "../layout/Header";
 import { Footer } from "../layout";
 import { sendAssistantMessage } from "../../lib/api";
 import { useLanguage } from "../../lib/i18n.jsx";
+import { getUserItem } from "../../lib/userStorage";
 
 import { FaMicrophone } from "react-icons/fa";
 
@@ -17,10 +18,21 @@ function loadHistory() {
   }
 }
 
+function getStoredProfile() {
+  try {
+    const personal = getUserItem("schemeSaathiPersonalDetails") || {};
+    const business = getUserItem("schemeSaathiBusinessDetails") || {};
+    const other = getUserItem("schemeSaathiOtherDetails") || {};
+    return { ...personal, ...business, ...other };
+  } catch {
+    return null;
+  }
+}
+
 function getPhoneNumber() {
   try {
-    const saved = localStorage.getItem("schemeSaathiPersonalDetails");
-    return saved ? JSON.parse(saved)?.phoneNumber : null;
+    const personal = getUserItem("schemeSaathiPersonalDetails");
+    return personal?.phoneNumber || null;
   } catch {
     return null;
   }
@@ -29,14 +41,101 @@ function getPhoneNumber() {
 const WELCOME_MESSAGE = {
   role: "assistant",
   content:
-    "Hi! I'm the AI Scheme Assistant. Ask me about any government scheme, what documents you need, or how to apply -- in your own words.",
+    "Namaste! I am your SchemeSathi AI Assistant, grounded in over 650+ Indian Government welfare schemes.\n\nAsk me anything about:\n- Eligibility criteria for specific schemes\n- Subsidies and loan amounts\n- Step-by-step application process\n- Required documents checklist\n\nHow can I help you today?",
+  schemes: [],
 };
 
 const suggestedQuestions = [
-  "Tell me about PMEGP",
+  "Tell me about PMEGP subsidy and loan",
   "How to apply for Stand-Up India?",
-  "More schemes for handicrafts",
+  "Schemes for women entrepreneurs",
+  "What documents are needed for PM MUDRA Yojana?",
+  "Subsidies for agriculture and dairy farming",
 ];
+
+function formatInline(str) {
+  const regex = /(\*\*.*?\*\*|\[.*?\]\(.*?\))/g;
+  const parts = str.split(regex);
+
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-semibold text-slate-900">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("[") && part.includes("](") && part.endsWith(")")) {
+      const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
+      if (linkMatch) {
+        return (
+          <a
+            key={i}
+            href={linkMatch[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-blue-600 underline hover:text-blue-800 break-all"
+          >
+            {linkMatch[1]}
+          </a>
+        );
+      }
+    }
+    return part;
+  });
+}
+
+function FormattedContent({ text }) {
+  if (!text) return null;
+  const lines = text.split("\n");
+
+  return (
+    <div className="space-y-2">
+      {lines.map((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return <div key={idx} className="h-1" />;
+        }
+
+        if (trimmed.startsWith("### ")) {
+          return (
+            <h3
+              key={idx}
+              className="mt-3 mb-1.5 border-b border-slate-200 pb-1 text-[12px] font-bold tracking-tight text-[#0d2b55]"
+            >
+              {trimmed.replace(/^###\s+/, "")}
+            </h3>
+          );
+        }
+
+        if (trimmed === "---") {
+          return <hr key={idx} className="my-2 border-slate-200" />;
+        }
+
+        const isBullet = trimmed.startsWith("- ") || trimmed.startsWith("* ");
+        const content = isBullet ? trimmed.substring(2) : trimmed;
+        const parsedContent = formatInline(content);
+
+        if (isBullet) {
+          return (
+            <div key={idx} className="flex items-start gap-2 pl-2">
+              <span className="mt-0.5 font-bold text-[#d7aa2d]">•</span>
+              <span className="flex-1 text-[11px] leading-5 text-slate-700">
+                {parsedContent}
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <p key={idx} className="text-[11px] leading-5 text-slate-700">
+            {parsedContent}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function AIAssistantPage() {
   const { t } = useLanguage();
@@ -62,8 +161,8 @@ export default function AIAssistantPage() {
     sessionStorage.removeItem(STORAGE_KEY);
   };
 
-  const handleSend = async () => {
-    const text = message.trim();
+  const handleSend = async (overrideText) => {
+    const text = (typeof overrideText === "string" ? overrideText : message).trim();
     if (!text || isSending) return;
 
     const nextMessages = [...messages, { role: "user", content: text }];
@@ -76,16 +175,25 @@ export default function AIAssistantPage() {
         .filter((m) => m !== WELCOME_MESSAGE)
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const result = await sendAssistantMessage(text, history, getPhoneNumber());
+      const profile = getStoredProfile();
+      const result = await sendAssistantMessage(text, history, getPhoneNumber(), profile);
 
-      setMessages((current) => [...current, { role: "assistant", content: result.reply }]);
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: result.reply,
+          schemes: result.schemes || [],
+        },
+      ]);
     } catch (error) {
       console.error("Assistant request failed:", error);
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
-          content: "Sorry, I couldn't reach the assistant right now. Please check your connection and try again.",
+          content:
+            "Sorry, I couldn't reach the SchemeSathi assistant service right now. Please check your connection and try again.",
         },
       ]);
     } finally {
@@ -94,7 +202,7 @@ export default function AIAssistantPage() {
   };
 
   const handleSuggestion = (question) => {
-    setMessage(question);
+    handleSend(question);
   };
 
   const handleKeyDown = (e) => {
@@ -106,14 +214,10 @@ export default function AIAssistantPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#172b49]">
-
       {/* ======== MAIN NAVBAR ====== */}
-
       <Header />
 
-
       {/* ============= AI ASSISTANT AREA ============= */}
-
       <div
         className="
           flex
@@ -124,13 +228,11 @@ export default function AIAssistantPage() {
           bg-white
         "
       >
-
         {/* ======== LEFT SIDEBAR ====== */}
-
         <aside
           className="
             hidden
-            w-58
+            w-64
             shrink-0
             flex-col
             bg-[#0d2b55]
@@ -138,11 +240,8 @@ export default function AIAssistantPage() {
             md:flex
           "
         >
-
           {/* ================= NEW CHAT ================= */}
-
-          <div className="px-7 pt-12">
-
+          <div className="px-6 pt-10">
             <button
               type="button"
               onClick={handleNewChat}
@@ -165,28 +264,23 @@ export default function AIAssistantPage() {
             >
               + New Chat
             </button>
-
           </div>
 
-
           {/* ================= SUGGESTED QUESTIONS ================= */}
-
-          <div className="px-7 pt-8">
-
+          <div className="px-6 pt-8">
             <p
               className="
-                text-[12px]
-                font-medium
-                tracking-wide
+                text-[11px]
+                font-semibold
+                tracking-wider
                 text-[#e4b32e]
+                uppercase
               "
             >
-              Try asking
+              Popular Inquiries
             </p>
 
-
-            <div className="mt-5 space-y-5">
-
+            <div className="mt-4 space-y-3">
               {suggestedQuestions.map((question, index) => (
                 <button
                   key={index}
@@ -195,59 +289,83 @@ export default function AIAssistantPage() {
                   className="
                     block
                     w-full
+                    rounded-md
+                    bg-white/5
+                    p-2.5
                     text-left
                     text-[11px]
-                    leading-5
+                    leading-snug
                     text-white/90
                     transition
+                    hover:bg-white/10
                     hover:text-[#e4b32e]
                   "
                 >
-                  {question}
+                  💬 {question}
                 </button>
               ))}
-
             </div>
-
           </div>
 
+          {/* ================= STATS BADGE ================= */}
+          <div className="mt-auto p-6 text-[10px] text-slate-400 border-t border-white/10">
+            <p className="font-semibold text-slate-300">🏛️ SchemeSathi AI</p>
+            <p className="mt-1">Grounded in 650+ verified Central & State welfare schemes.</p>
+          </div>
         </aside>
 
-
         {/* ============= MAIN CHAT AREA ============= */}
-
         <main className="flex min-w-0 flex-1 flex-col">
-
           {/* ============ CHAT HEADER =========== */}
+          <div className="px-7 pt-5 pb-3 border-b border-slate-100 sm:px-9 flex items-center justify-between">
+            <div>
+              <h1
+                className="
+                  text-[19px]
+                  font-extrabold
+                  tracking-[-0.02em]
+                  text-[#172b49]
+                "
+              >
+                {t("assistant_title")}
+              </h1>
+              <p
+                className="
+                  mt-0.5
+                  text-[10px]
+                  text-slate-500
+                "
+              >
+                Government Scheme Advisor • Instant eligibility, benefits, and application support
+              </p>
+            </div>
 
-          <div className="px-7 pt-5 sm:px-9">
-
-            <h1
+            <button
+              type="button"
+              onClick={openVoiceAssistant}
               className="
-                text-[20px]
-                font-extrabold
-                tracking-[-0.02em]
-                text-[#172b49]
+                flex
+                items-center
+                gap-2
+                rounded-lg
+                border
+                border-[#d7aa2d]
+                bg-[#fdfaf2]
+                px-3
+                py-1.5
+                text-[11px]
+                font-semibold
+                text-[#0d2b55]
+                transition
+                hover:bg-[#fbf4de]
               "
             >
-              {t("assistant_title")}
-            </h1>
-
-            <p
-              className="
-                mt-0.5
-                text-[10px]
-                text-slate-400
-              "
-            >
-              Ask in your own words — text or voice
-            </p>
-
+              <FaMicrophone className="text-[#d7aa2d]" />
+              <span>Voice Mode</span>
+            </button>
           </div>
 
-
           {/* ============= CHAT MESSAGES ============= */}
-
           <div
             className="
               flex
@@ -259,17 +377,16 @@ export default function AIAssistantPage() {
               sm:px-9
             "
           >
-
             {messages.map((entry, index) =>
               entry.role === "user" ? (
                 <div key={index} className="flex justify-end">
                   <div
                     className="
                       mb-5
-                      max-w-[65%]
+                      max-w-[70%]
                       rounded-2xl
                       bg-[#0d2b55]
-                      px-6
+                      px-5
                       py-3
                       text-[11px]
                       leading-5
@@ -284,7 +401,7 @@ export default function AIAssistantPage() {
                 <div key={index} className="mb-5">
                   <div
                     className="
-                      max-w-[72%]
+                      max-w-[78%]
                       rounded-2xl
                       border
                       border-slate-200
@@ -294,9 +411,27 @@ export default function AIAssistantPage() {
                       shadow-sm
                     "
                   >
-                    <p className="whitespace-pre-line text-[11px] leading-5 text-slate-700">
-                      {entry.content}
-                    </p>
+                    <FormattedContent text={entry.content} />
+
+                    {/* Matched Scheme Badges */}
+                    {entry.schemes && entry.schemes.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-slate-200">
+                        <p className="text-[10px] font-semibold text-slate-500 mb-2 uppercase tracking-wider">
+                          Referenced Schemes
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {entry.schemes.map((s, sIdx) => (
+                            <span
+                              key={sIdx}
+                              className="inline-flex items-center gap-1 rounded-md bg-white border border-slate-200 px-2.5 py-1 text-[10px] font-medium text-[#0d2b55] shadow-xs"
+                              title={s.description || s.scheme_name}
+                            >
+                              📜 {s.scheme_name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
@@ -305,28 +440,28 @@ export default function AIAssistantPage() {
             {isSending && (
               <div className="mb-5">
                 <div className="inline-block max-w-[72%] rounded-2xl border border-slate-200 bg-[#f8f9fc] px-6 py-4 shadow-sm">
-                  <p className="text-[11px] leading-5 text-slate-400">Thinking...</p>
+                  <p className="text-[11px] leading-5 text-slate-400 animate-pulse">
+                    Consulting scheme database...
+                  </p>
                 </div>
               </div>
             )}
 
             <div ref={scrollRef} />
-
           </div>
 
-
           {/* ======= MESSAGE INPUT ======= */}
-
           <div
             className="
               px-7
-              pb-3
+              pb-4
+              pt-2
               sm:px-9
+              border-t
+              border-slate-100
             "
           >
-
-            <div className="flex items-center gap-5">
-
+            <div className="flex items-center gap-3">
               <input
                 type="text"
                 value={message}
@@ -373,16 +508,17 @@ export default function AIAssistantPage() {
                   text-[12px]
                   font-semibold
                   text-[#0d2b55]
+                  hover:bg-[#fbf4de]
+                  transition
                 "
               >
                 <FaMicrophone />
               </button>
 
               {/* SEND BUTTON */}
-
               <button
                 type="button"
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={isSending || !message.trim()}
                 className="
                   flex
@@ -405,17 +541,12 @@ export default function AIAssistantPage() {
               >
                 ➤
               </button>
-
             </div>
-
           </div>
-
         </main>
-
       </div>
 
       <Footer />
-
     </div>
   );
 }

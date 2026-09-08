@@ -34,10 +34,16 @@ logger = get_logger("main")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("application_startup", env=settings.ENV)
-    get_redis_client()
+    try:
+        get_redis_client()
+    except Exception:
+        logger.warning("redis_unavailable", msg="Redis not available — continuing without cache")
     yield
     logger.info("application_shutdown")
-    await engine.dispose()
+    try:
+        await engine.dispose()
+    except Exception:
+        pass
 
 
 app = FastAPI(

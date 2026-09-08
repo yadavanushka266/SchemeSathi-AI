@@ -8,17 +8,40 @@ against a scheme.
 ==========================================================
 """
 
-from parser import (
-    parse_age,
-    parse_income,
-    parse_categories,
-    parse_gender,
-    parse_business,
-    parse_state,
-    parse_bool
-)
-
-from utils import normalize
+try:
+    from src.ml.eligibility_engine.parser import (
+        parse_age,
+        parse_income,
+        parse_categories,
+        parse_gender,
+        parse_business,
+        parse_state,
+        parse_bool
+    )
+    from src.ml.eligibility_engine.utils import normalize
+except ImportError:
+    try:
+        from .parser import (
+            parse_age,
+            parse_income,
+            parse_categories,
+            parse_gender,
+            parse_business,
+            parse_state,
+            parse_bool
+        )
+        from .utils import normalize
+    except ImportError:
+        from parser import (
+            parse_age,
+            parse_income,
+            parse_categories,
+            parse_gender,
+            parse_business,
+            parse_state,
+            parse_bool
+        )
+        from utils import normalize
 
 
 class EligibilityMatcher:
