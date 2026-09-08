@@ -51,40 +51,35 @@ export default function MatchingSchemesPage() {
 
   /* ===== FETCH REAL MATCHES FROM THE AI MATCHING ENGINE ======= */
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadMatches = async () => {
+    const hasProfile = Boolean(
+      personalDetails?.phoneNumber ||
+      personalDetails?.state ||
+      personalDetails?.category ||
+      businessDetails?.businessType ||
+      businessDetails?.businessActivity
+    );
 
-    async function loadMatches() {
-      // Reached here via "Explore" on Categories or "Confirm & Find" on the
-      // Voice Assistant -- neither collects a phone number, which the
-      // matching engine needs as the beneficiary's identity. Send them to
-      // the wizard instead of showing a confusing error.
-      if (!personalDetails?.phoneNumber) {
-        setStatus("needs-profile");
-        return;
-      }
-
-      setStatus("loading");
-
-      try {
-        const payload = buildProfilePayload(personalDetails, businessDetails, otherDetails);
-        const result = await fetchMatchingSchemes(payload);
-
-        if (!cancelled) {
-          setMatches(result.matches || []);
-          setStatus("ready");
-        }
-      } catch (error) {
-        console.error("Unable to fetch matching schemes:", error);
-        if (!cancelled) setStatus("error");
-      }
+    if (!hasProfile) {
+      setStatus("needs-profile");
+      return;
     }
 
-    loadMatches();
+    setStatus("loading");
 
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const payload = buildProfilePayload(personalDetails, businessDetails, otherDetails);
+      const result = await fetchMatchingSchemes(payload);
+      setMatches(result.matches || []);
+      setStatus("ready");
+    } catch (error) {
+      console.error("Unable to fetch matching schemes:", error);
+      setStatus("error");
+    }
+  };
+
+  useEffect(() => {
+    loadMatches();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -256,6 +251,7 @@ export default function MatchingSchemesPage() {
               <StatusMessage
                 title="We couldn't fetch your matches"
                 body="Please check your internet connection and try again. If the problem continues, please try again in a few minutes."
+                onRetry={loadMatches}
               />
             )}
 
@@ -265,8 +261,8 @@ export default function MatchingSchemesPage() {
 
             {status === "ready" && filteredSchemes.length > 0 && (
               <div className="grid gap-5 md:grid-cols-2">
-                {filteredSchemes.map((scheme) => (
-                  <SchemeCard key={scheme.scheme_id} scheme={scheme} onView={() => handleViewScheme(scheme)} />
+                {filteredSchemes.map((scheme, idx) => (
+                  <SchemeCard key={`${scheme.scheme_id || scheme.name}-${idx}`} scheme={scheme} onView={() => handleViewScheme(scheme)} />
                 ))}
               </div>
             )}
@@ -296,10 +292,28 @@ function SchemeCard({ scheme, onView }) {
           </div>
         </div>
 
-        <span className="rounded-full bg-[#fff5c9] px-2.5 py-1 text-[10px] font-semibold text-[#8c6b00]">
-          {Math.round(scheme.score * 100)}% match
-        </span>
+        <div className="flex flex-col items-end gap-1.5">
+          <span className="rounded-full bg-[#fff5c9] px-2.5 py-1 text-[10px] font-semibold text-[#8c6b00]">
+            {Math.round(scheme.score * 100)}% match
+          </span>
+          {scheme.confidence && (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-medium text-slate-600">
+              {scheme.confidence} Confidence
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* MATCHED CRITERIA PILLS */}
+      {scheme.matched_conditions?.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {scheme.matched_conditions.map((cond) => (
+            <span key={cond} className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+              ✓ {cond}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* DESCRIPTION */}
 
@@ -359,11 +373,21 @@ function ProfileTag({ children }) {
 
 /* ====== STATUS MESSAGE (loading / error / needs-profile) ====== */
 
-function StatusMessage({ title, body, action }) {
+function StatusMessage({ title, body, action, onRetry }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
       <h2 className="mt-4 text-lg font-bold text-[#172b49]">{title}</h2>
       <p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-slate-500">{body}</p>
+
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-5 inline-block rounded-lg bg-[#0d2b55] px-5 py-2.5 text-[12px] font-medium text-white hover:bg-[#173b70] active:scale-95 transition"
+        >
+          🔄 Retry Fetching Matches
+        </button>
+      )}
 
       {action && (
         <a

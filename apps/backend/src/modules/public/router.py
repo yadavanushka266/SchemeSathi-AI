@@ -1,16 +1,15 @@
 from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
 
 from src.config.database import get_db_optional
-from src.integrations import ai_client
-from src.ml.model5_engine import BeneficiaryProfileBuilder, DEFAULT_SCHEMES_CATALOG
-from src.modules.matching.explainer import build_explanation
-from src.modules.matching.rules_engine import evaluate_eligibility
-from src.modules.schemes.models import Scheme
-from src.modules.schemes.repository import list_all_current_versions
+from src.config.logging import get_logger
+from src.modules.chatbot.service import chatbot_service
+from src.modules.eligibility.service import eligibility_service
+
+logger = get_logger("public_router")
 
 router = APIRouter(prefix="/public", tags=["Public"])
 
@@ -19,100 +18,84 @@ class AssistantChatRequest(BaseModel):
     message: str
     history: list[dict[str, Any]] = []
     phone_number: str | None = None
+    profile: dict[str, Any] | None = None
 
 
 @router.post("/self-service/schemes-match")
 async def self_service_schemes_match(profile: dict[str, Any], db: AsyncSession | None = Depends(get_db_optional)):
-    """Matches self-service user profile against all active schemes using Model 5 ML Engine."""
-    builder = BeneficiaryProfileBuilder()
-    normalized_profile = builder.build_profile(profile)
-
-    schemes_to_evaluate = []
-
-    # 1. Attempt fetching active schemes & versions from database if available
-    if db is not None:
-        try:
-            versions = await list_all_current_versions(db)
-            for version in versions:
-                scheme = (await db.execute(select(Scheme).where(Scheme.id == version.scheme_id))).scalar_one_or_none()
-                if scheme and scheme.is_active:
-                    schemes_to_evaluate.append({
-                        "scheme_id": str(scheme.id),
-                        "name": scheme.name,
-                        "scheme_name": scheme.name,
-                        "category": scheme.category,
-                        "department": getattr(scheme, "department", "Government of India"),
-                        "description": scheme.description,
-                        "benefits": getattr(scheme, "benefits", "Financial assistance and support."),
-                        "official_source_url": getattr(scheme, "official_source_url", None),
-                        "application_route": getattr(scheme, "application_route", "Apply through official portal."),
-                        "required_documents": getattr(scheme, "required_documents", []),
-                        "eligibility_criteria": version.eligibility_criteria or [],
-                    })
-        except Exception:
-            pass
-
-    # 2. Fallback to Model 5 default government schemes catalog if DB is empty/unavailable
-    if not schemes_to_evaluate:
-        schemes_to_evaluate = DEFAULT_SCHEMES_CATALOG
-
-    matches = []
-    for item in schemes_to_evaluate:
-        criteria = item.get("eligibility_criteria") or []
-        score, matched, unmatched = evaluate_eligibility(normalized_profile, criteria)
+    """Matches self-service user profile against schemes using the Eligibility Engine.
+    Filters and ranks schemes that match the user's specific profile inputs and requirements.
+    """
+    try:
+        # Evaluate 100% eligible schemes first
+        eligible_matches = eligibility_service.match_schemes(profile, top_n=100, eligible_only=True)
         
-        # If no criteria specified or score >= 0.3, include match
-        if not criteria or score >= 0.3:
-            final_score = score if criteria else 0.8
-            explanation = build_explanation(item["name"], matched, unmatched)
-            
-            matches.append({
-                "scheme_id": str(item.get("scheme_id")),
-                "name": item["name"],
-                "scheme_name": item["name"],
-                "category": item.get("category", "Government Scheme"),
-                "department": item.get("department", "Government of India"),
-                "description": item.get("description", ""),
-                "benefits": item.get("benefits", "Financial Assistance"),
-                "score": final_score,
-                "explanation": explanation,
-                "matched_conditions": matched,
-                "unmatched_conditions": unmatched,
-                "official_source_url": item.get("official_source_url"),
-                "application_route": item.get("application_route", "Apply via official portal."),
-                "required_documents": item.get("required_documents", []),
-            })
+        # Filter for schemes with 0 failed conditions if available
+        perfect_matches = [
+            m for m in eligible_matches 
+            if m.get("eligible") and len(m.get("failed_conditions", [])) == 0
+        ]
+        
+        # If perfect matches are scarce, fallback to overall top-scored recommended schemes
+        matches_to_rank = perfect_matches if len(perfect_matches) >= 5 else eligible_matches
+        if not matches_to_rank:
+            matches_to_rank = eligibility_service.match_schemes(profile, top_n=30, eligible_only=False)
 
-    matches.sort(key=lambda x: x["score"], reverse=True)
-    return {"matches": matches, "total": len(matches)}
+        pref_support = str(profile.get("preferred_support") or profile.get("interested_scheme_type") or "").lower()
+        bus_type = str(profile.get("business_type") or profile.get("occupation") or "").lower()
+        user_location = str(profile.get("location") or profile.get("state") or profile.get("district") or "").lower()
+
+        location_tokens = [loc.strip() for loc in user_location.split(",") if loc.strip() and len(loc.strip()) > 2]
+        bus_tokens = [b.strip() for b in bus_type.split() if b.strip() and len(b.strip()) > 2]
+        support_tokens = [s.strip() for s in pref_support.split() if s.strip() and len(s.strip()) > 2]
+
+        def _relevance_score(scheme):
+            score = scheme.get("score", 0.5)
+            text = f"{scheme.get('name', '')} {scheme.get('description', '')} {scheme.get('benefits', '')} {scheme.get('category', '')}".lower()
+
+            if location_tokens and any(loc in text for loc in location_tokens):
+                score += 0.25
+            if bus_tokens and any(b in text for b in bus_tokens):
+                score += 0.20
+            if support_tokens and any(s in text for s in support_tokens):
+                score += 0.10
+            return score
+
+        # Remove duplicates while preserving order
+        seen_ids = set()
+        unique_matches = []
+        for m in matches_to_rank:
+            sid = m.get("scheme_id") or m.get("name")
+            if sid not in seen_ids:
+                seen_ids.add(sid)
+                unique_matches.append(m)
+
+        unique_matches.sort(key=_relevance_score, reverse=True)
+        final_matches = unique_matches[:20]
+
+        return {"matches": final_matches, "total": len(final_matches)}
+    except Exception as e:
+        logger.error("self_service_schemes_match_error", error=str(e))
+        return {"matches": [], "total": 0, "error": str(e)}
 
 
 @router.post("/self-service/assistant-chat")
 async def self_service_assistant_chat(payload: AssistantChatRequest):
-    """Processes user message with SchemeSathi AI Assistant."""
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are SchemeSathi AI Assistant, a helpful, polite, and knowledgeable assistant "
-                "guidance system for government welfare schemes in India. Help citizens understand "
-                "schemes, eligibility requirements, application processes, and required documents. "
-                "Keep responses concise, clear, and easy to understand."
-            ),
-        }
-    ]
-
-    for item in payload.history:
-        if isinstance(item, dict) and "role" in item and "content" in item:
-            messages.append({"role": item["role"], "content": item["content"]})
-
-    messages.append({"role": "user", "content": payload.message})
-
-    reply = await ai_client.chat_completion(messages, max_tokens=500)
-    if not reply:
-        reply = (
-            "I'm sorry, I am currently having trouble reaching the AI service. "
-            "Please check back shortly or explore the scheme finder directly!"
+    """Processes citizen query with SchemeSathi AI Chatbot (FAISS semantic retrieval + Gemini RAG)."""
+    try:
+        result = await chatbot_service.chat(
+            message=payload.message,
+            history=payload.history,
+            phone_number=payload.phone_number,
+            profile=payload.profile,
         )
-
-    return {"reply": reply}
+        return result
+    except Exception as e:
+        logger.error("self_service_assistant_chat_error", error=str(e))
+        return {
+            "reply": (
+                "I'm sorry, I encountered a temporary issue while retrieving scheme details. "
+                "Please try asking your question again."
+            ),
+            "retrieved_schemes": []
+        }

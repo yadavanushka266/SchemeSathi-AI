@@ -30,7 +30,6 @@ const genders = [
 const categories = [
   "SC/ST",
   "OBC",
-  "PwD",
   "Minority",
   "General",
   "Other",

@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +16,9 @@ from src.modules.analytics.router import router as analytics_router
 from src.modules.applications.router import router as applications_router
 from src.modules.auth.router import router as auth_router
 from src.modules.beneficiaries.router import router as beneficiaries_router
+from src.modules.chatbot.router import router as chatbot_router
 from src.modules.documents.router import router as documents_router
+from src.modules.eligibility.router import router as eligibility_router
 from src.modules.facilitators.router import router as facilitators_router
 from src.modules.matching.router import router as matching_router
 from src.modules.notifications.router import router as notifications_router
@@ -35,9 +38,25 @@ logger = get_logger("main")
 async def lifespan(app: FastAPI):
     logger.info("application_startup", env=settings.ENV)
     get_redis_client()
+    
+    # Pre-warm AI & ML services asynchronously at startup so first requests are instantaneous
+    try:
+        from src.modules.chatbot.service import chatbot_service
+        from src.modules.eligibility.service import eligibility_service
+        
+        logger.info("prewarming_ai_services")
+        await asyncio.to_thread(chatbot_service._ensure_initialized)
+        _ = eligibility_service
+        logger.info("ai_services_prewarmed_successfully")
+    except Exception as e:
+        logger.warning("ai_services_prewarm_warning", error=str(e))
+        
     yield
     logger.info("application_shutdown")
-    await engine.dispose()
+    try:
+        await engine.dispose()
+    except Exception:
+        pass
 
 
 app = FastAPI(
@@ -59,7 +78,7 @@ app.add_middleware(
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["*"],
 )
 
 register_exception_handlers(app)
@@ -80,6 +99,8 @@ app.include_router(analytics_router, prefix=api_router_prefix)
 app.include_router(documents_router, prefix=api_router_prefix)
 app.include_router(notifications_router, prefix=api_router_prefix)
 app.include_router(public_router, prefix=api_router_prefix)
+app.include_router(eligibility_router, prefix=api_router_prefix)
+app.include_router(chatbot_router, prefix=api_router_prefix)
 
 
 @app.get("/health", tags=["Health"])
