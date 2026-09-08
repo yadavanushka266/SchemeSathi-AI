@@ -4,7 +4,6 @@ const audiences = [
   "Women",
   "SC/ST",
   "OBC",
-  "PwD",
   "Minorities",
   "Rural",
   "First-time business owners",

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import FormattedText from "./FormattedText";
 import Header from "../layout/Header";
 import { Footer } from "../layout";
 import { sendAssistantMessage } from "../../lib/api";
@@ -73,12 +74,19 @@ export default function AIAssistantPage() {
 
     try {
       const history = nextMessages
-        .filter((m) => m !== WELCOME_MESSAGE)
+        .filter((m) => m !== WELCOME_MESSAGE && !m.content.startsWith("Sorry, I couldn't reach"))
         .map((m) => ({ role: m.role, content: m.content }));
 
       const result = await sendAssistantMessage(text, history, getPhoneNumber());
 
-      setMessages((current) => [...current, { role: "assistant", content: result.reply }]);
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: result.reply,
+          schemes: result.retrieved_schemes || [],
+        },
+      ]);
     } catch (error) {
       console.error("Assistant request failed:", error);
       setMessages((current) => [
@@ -284,7 +292,7 @@ export default function AIAssistantPage() {
                 <div key={index} className="mb-5">
                   <div
                     className="
-                      max-w-[72%]
+                      max-w-[85%]
                       rounded-2xl
                       border
                       border-slate-200
@@ -294,9 +302,61 @@ export default function AIAssistantPage() {
                       shadow-sm
                     "
                   >
-                    <p className="whitespace-pre-line text-[11px] leading-5 text-slate-700">
-                      {entry.content}
-                    </p>
+                    <FormattedText content={entry.content} />
+
+                    {/* ATTACHED SCHEME CARDS */}
+                    {entry.schemes?.length > 0 && (
+                      <div className="mt-4 border-t border-slate-200 pt-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#0d2b55]">
+                          Official Schemes Referenced ({entry.schemes.length})
+                        </p>
+                        <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+                          {entry.schemes.map((s, sIdx) => (
+                            <div
+                              key={sIdx}
+                              className="rounded-xl border border-slate-200 bg-white p-3 shadow-xs transition hover:border-[#d7aa2d]"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="text-[11px] font-bold text-[#172b49] line-clamp-2">
+                                  {s.scheme_name}
+                                </h4>
+                                {s.level && (
+                                  <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-600">
+                                    {s.level}
+                                  </span>
+                                )}
+                              </div>
+                              {s.benefits && (
+                                <p className="mt-1.5 text-[10px] text-slate-500 line-clamp-2">
+                                  {s.benefits}
+                                </p>
+                              )}
+                              <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+                                {s.official_url ? (
+                                  <a
+                                    href={s.official_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[10px] font-semibold text-[#0d2b55] hover:underline"
+                                  >
+                                    Official Portal ↗
+                                  </a>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400">Government Portal</span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleSuggestion(`Tell me eligibility and documents for ${s.scheme_name}`)}
+                                  className="text-[9px] font-medium text-[#9b7815] hover:underline"
+                                >
+                                  Ask Eligibility →
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )

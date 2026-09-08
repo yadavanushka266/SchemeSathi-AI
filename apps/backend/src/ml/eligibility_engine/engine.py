@@ -10,8 +10,16 @@ Main Eligibility Engine
 
 import pandas as pd
 
-from matcher import EligibilityMatcher
-from scorer import SchemeScorer
+try:
+    from src.ml.eligibility_engine.matcher import EligibilityMatcher
+    from src.ml.eligibility_engine.scorer import SchemeScorer
+except ImportError:
+    try:
+        from .matcher import EligibilityMatcher
+        from .scorer import SchemeScorer
+    except ImportError:
+        from matcher import EligibilityMatcher
+        from scorer import SchemeScorer
 
 
 class EligibilityEngine:

@@ -17,7 +17,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
     RATE_LIMIT_LOGIN: str = "5/minute"
     RATE_LIMIT_DEFAULT: str = "100/minute"
@@ -26,6 +33,11 @@ class Settings(BaseSettings):
     AI_PROVIDER_API_KEY: str = ""
     AI_PROVIDER_BASE_URL: str = "https://api.openai.com/v1"
     AI_CHAT_MODEL: str = "gpt-4o-mini"
+
+    # Chatbot & Gemini Configuration
+    CHATBOT_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
+    CHATBOT_MODEL: str = "gemini-2.5-flash"
 
     TELEPHONY_PROVIDER: str = "exotel"
     TELEPHONY_API_KEY: str = ""

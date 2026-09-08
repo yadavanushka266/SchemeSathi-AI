@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import AIHelpModal from "./AIHelpModal";
 
 const steps = [
   { number: 1, label: "Personal Info" },
@@ -9,9 +10,10 @@ const steps = [
 ];
 
 export default function ProgressSteps({ currentStep = 1 }) {
+  const [isAiHelpOpen, setIsAiHelpOpen] = useState(false);
 
   const openAIAssistant = () => {
-    window.location.assign("/ai-assistant");
+    setIsAiHelpOpen(true);
   };
 
   return (
@@ -124,6 +126,12 @@ export default function ProgressSteps({ currentStep = 1 }) {
         </button>
 
       </div>
+
+      <AIHelpModal
+        isOpen={isAiHelpOpen}
+        onClose={() => setIsAiHelpOpen(false)}
+        currentStep={currentStep}
+      />
 
     </div>
   );
